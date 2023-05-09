@@ -183,7 +183,7 @@ pub trait Cosmwasm: Client + Sized {
         Ok(res)
     }
 
-    async fn wasm_query_commit<S: Serialize + Sync>(
+    async fn wasm_query<S: Serialize + Sync>(
         &self,
         address: Address,
         msg: &S,
