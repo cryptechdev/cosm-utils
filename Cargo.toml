@@ -8,7 +8,7 @@ readme = "README.md"
 description = "Simple utility traits and functions for tendermint_rpc and cosmrs"
 repository = "https://github.com/cryptechdev/cosm-utils.git"
 
-keywords = ["cosmos", "client", "rpc", "tendermint", "cosmwasm", "cosmrs"]
+keywords = ["cosmos", "client", "tendermint", "cosmwasm", "cosmrs"]
 categories = ["cryptography::cryptocurrencies"]
 license = "Apache-2.0"
 
