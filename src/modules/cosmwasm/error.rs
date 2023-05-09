@@ -1,9 +1,6 @@
 use thiserror::Error;
 
-use crate::{
-    chain::error::ChainError,
-    modules::{auth::error::AccountError, tx::error::TxError},
-};
+use crate::{chain::error::ChainError, modules::auth::error::AccountError};
 
 pub use serde_json::Error as SerdeJsonError;
 
@@ -17,9 +14,6 @@ pub enum CosmwasmError {
 
     #[error("missing event from chain response")]
     MissingEvent,
-
-    #[error(transparent)]
-    TxError(#[from] TxError),
 
     #[error(transparent)]
     AccountError(#[from] AccountError),

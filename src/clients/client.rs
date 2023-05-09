@@ -1,13 +1,13 @@
 use crate::chain::coin::{Coin, Denom};
+use crate::chain::error::ChainError;
 use crate::chain::fee::{Fee, GasInfo};
 use crate::chain::msg::Msg;
 use crate::chain::request::TxOptions;
+use crate::chain::tx::RawTx;
 use crate::config::cfg::ChainConfig;
 use crate::modules::auth::error::AccountError;
 use crate::modules::auth::model::{Account, AccountResponse, Address};
-use crate::modules::tx::error::TxError;
 use crate::signing_key::key::SigningKey;
-use crate::{chain::error::ChainError, modules::tx::model::RawTx};
 use async_trait::async_trait;
 use cosmrs::proto::cosmos::auth::v1beta1::{
     BaseAccount, QueryAccountRequest, QueryAccountResponse,
@@ -175,7 +175,7 @@ pub trait ClientAbciQuery: Sized {
         gas_adjustment: f64,
         msgs: I,
         account: &Account,
-    ) -> Result<Fee, TxError>
+    ) -> Result<Fee, ChainError>
     where
         I: IntoIterator<Item = Any> + Send,
     {
@@ -222,7 +222,7 @@ pub trait ClientAbciQuery: Sized {
         msgs: Vec<T>,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<RawTx, TxError>
+    ) -> Result<RawTx, AccountError>
     where
         T: Msg + Serialize + Send + Sync,
         <T as Msg>::Err: Send + Sync,

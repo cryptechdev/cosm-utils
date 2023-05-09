@@ -11,7 +11,7 @@ use tendermint_rpc::query::{EventType, Query};
 use tendermint_rpc::Order;
 
 use crate::chain::error::ChainError;
-use crate::modules::tx::model::RawTx;
+use crate::chain::tx::RawTx;
 
 use super::client::{
     ClientAbciQuery, ClientTxAsync, ClientTxCommit, ClientTxSync, GetErr, GetEvents, GetValue,

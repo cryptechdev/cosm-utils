@@ -12,8 +12,8 @@ use serde::{Deserialize, Serialize};
 use crate::chain::error::ChainError;
 use crate::chain::fee::Fee;
 use crate::chain::msg::Msg;
+use crate::chain::tx::RawTx;
 use crate::modules::auth::model::{Account, Address};
-use crate::modules::tx::model::RawTx;
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct SigningKey {
