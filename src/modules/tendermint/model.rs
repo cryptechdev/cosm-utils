@@ -2,12 +2,13 @@ use cosmrs::{
     crypto::PublicKey,
     proto::{
         cosmos::base::tendermint::v1beta1::{
-            GetLatestBlockResponse, GetLatestValidatorSetResponse, GetValidatorSetByHeightResponse,
-            Validator as ProtoValidator,
+            Block, GetLatestBlockResponse, GetLatestValidatorSetResponse,
+            GetValidatorSetByHeightResponse, Validator as ProtoValidator,
         },
-        tendermint::types::{Block, BlockId},
+        tendermint::types::{Block, BlockId, Commit, Data, EvidenceList, Header},
     },
 };
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -18,18 +19,37 @@ use crate::{
 use super::error::TendermintError;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct BlockResponse {
-    pub id: BlockId,
-    pub block: Block,
+pub struct SdkBlock {
+    pub header: Option<Header>,
+    pub data: Option<Data>,
+    pub evidence: Option<EvidenceList>,
+    pub last_commit: Option<Commit>,
 }
 
-impl TryFrom<GetLatestBlockResponse> for BlockResponse {
-    type Error = TendermintError;
+impl From<Block> for SdkBlock {
+    fn from(value: Block) -> Self {
+        todo!()
+    }
+}
 
-    fn try_from(res: GetLatestBlockResponse) -> Result<Self, Self::Error> {
+impl From<SdkBlock> for Block {
+    fn from(value: SdkBlock) -> Self {
+        todo!()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct BlockResponse {
+    pub id: BlockId,
+    pub block: Option<Block>,
+    pub sdk_block: Option<SdkBlock>,
+}
+
+impl From<GetLatestBlockResponse> for BlockResponse {
+    fn from(res: GetLatestBlockResponse) -> Self {
         Ok(Self {
-            id: res.block_id.ok_or(TendermintError::MissingBlockId)?,
-            block: res.block.ok_or(TendermintError::MissingBlock)?,
+            id: res.block_id,
+            sdk_block: res.sdk_block,
         })
     }
 }
@@ -38,7 +58,8 @@ impl From<BlockResponse> for GetLatestBlockResponse {
     fn from(res: BlockResponse) -> Self {
         Self {
             block_id: Some(res.id),
-            block: Some(res.block),
+            block: res.block,
+            sdk_block: res.sdk_block,
         }
     }
 }

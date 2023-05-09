@@ -8,5 +8,7 @@ pub mod error;
 
 pub mod msg;
 
+pub mod response;
+
 pub use cosmrs::proto::traits::Message;
 pub use cosmrs::{proto::traits::TypeUrl, tx::MessageExt, Any};

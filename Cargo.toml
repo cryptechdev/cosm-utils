@@ -5,8 +5,8 @@ edition = "2021"
 authors = ["Eric Woolsey <ewoolsey@ualberta.ca>", "Harry Hull <harry.hull1@gmail.com>"]
 
 readme = "README.md"
-description = "Simply utility traits and functions for tendermint_rpc and cosmrs"
-repository = "https://github.com/de-husk/cosm-tome.git"
+description = "Simple utility traits and functions for tendermint_rpc and cosmrs"
+repository = "https://github.com/cryptechdev/cosm-utils.git"
 
 keywords = ["cosmos", "client", "rpc", "tendermint", "cosmwasm", "cosmrs"]
 categories = ["cryptography::cryptocurrencies"]
@@ -19,10 +19,10 @@ os_keyring = ["keyring"]
 [dependencies]
 cosmrs = { version = "0.14.0", features = ["rpc", "cosmwasm", "grpc"] }
 tendermint-rpc = "0.32.0"
+tokio = { version = "1.20.1", features = ["full"]}
 
 async-trait = "0.1.57"
 thiserror = "1.0.31"
-regex = "1.6.0"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = "1.0"
 schemars = "0.8"
@@ -31,5 +31,4 @@ keyring = { version = "2", optional = true }
 mockall = { version = "0.11.2", optional = true }
 
 [dev-dependencies]
-tokio = { version = "1.20.1", features = ["full"]}
 tendermint-rpc = { version = "0.32.0", features = ["websocket-client", "http-client"]}

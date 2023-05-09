@@ -1,8 +1,13 @@
 use async_trait::async_trait;
 use serde::Serialize;
+use tendermint_rpc::endpoint::broadcast::tx_commit;
+use tendermint_rpc::Client;
 
 use crate::chain::request::TxOptions;
-use crate::clients::client::CosmosClientQuery;
+use crate::clients::response::FindEventTags;
+use crate::config::cfg::ChainConfig;
+use crate::modules::tx::api::Tx;
+use crate::prelude::ClientUtils;
 use cosmrs::proto::cosmwasm::wasm::v1::{
     QuerySmartContractStateRequest, QuerySmartContractStateResponse,
 };
@@ -11,25 +16,28 @@ use crate::modules::auth::model::Address;
 use crate::signing_key::key::SigningKey;
 
 use super::model::{
-    ExecRequest, ExecResponse, InstantiateBatchResponse, InstantiateRequest, MigrateRequest,
-    MigrateResponse, QueryResponse, StoreCodeBatchResponse, StoreCodeRequest,
+    ExecRequest, InstantiateBatchResponse, InstantiateRequest, MigrateRequest,
+    StoreCodeBatchResponse, StoreCodeRequest,
 };
 use super::{
     error::CosmwasmError,
     model::{InstantiateResponse, StoreCodeResponse},
 };
 
-impl<T> CosmwasmQuery for T where T: CosmosClientQuery {}
+impl<T> Cosmwasm for T where T: Client {}
 
 #[async_trait]
-pub trait CosmwasmQuery: CosmosClientQuery + Sized {
-    async fn wasm_store(
+pub trait Cosmwasm: Client + Sized {
+    async fn wasm_store_commit(
         &self,
+        chain_cfg: &ChainConfig,
         req: StoreCodeRequest,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<StoreCodeResponse, CosmwasmError> {
-        let mut res = self.wasm_store_batch(vec![req], key, tx_options).await?;
+    ) -> Result<StoreCodeResponse<tx_commit::Response>, CosmwasmError> {
+        let mut res = self
+            .wasm_store_batch_commit(chain_cfg, vec![req], key, tx_options)
+            .await?;
 
         Ok(StoreCodeResponse {
             code_id: res.code_ids.remove(0),
@@ -37,29 +45,31 @@ pub trait CosmwasmQuery: CosmosClientQuery + Sized {
         })
     }
 
-    async fn wasm_store_batch<I>(
+    async fn wasm_store_batch_commit<I>(
         &self,
+        chain_cfg: &ChainConfig,
         reqs: I,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<StoreCodeBatchResponse, CosmwasmError>
+    ) -> Result<StoreCodeBatchResponse<tx_commit::Response>, CosmwasmError>
     where
-        I: IntoIterator<Item = StoreCodeRequest>,
+        I: IntoIterator<Item = StoreCodeRequest> + Send,
     {
-        let sender_addr = key.to_addr(&self.cfg.prefix).await?;
+        let sender_addr = key
+            .to_addr(&chain_cfg.prefix, &chain_cfg.derivation_path)
+            .await?;
 
         let msgs = reqs
             .into_iter()
             .map(|r| r.to_proto(sender_addr.clone()))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let tx_raw = self
-            .tx_sign(msgs, Some(sender_addr), key, tx_options)
-            .await?;
+        let tx_raw = self.tx_sign(chain_cfg, msgs, key, tx_options).await?;
 
-        let res = self.tx_broadcast_block(&tx_raw).await?;
+        let res = self.broadcast_tx_commit(tx_raw.to_bytes()?).await?;
 
         let code_ids = res
+            .deliver_tx
             .find_event_tags("store_code".to_string(), "code_id".to_string())
             .into_iter()
             .map(|x| x.value.parse::<u64>())
@@ -69,17 +79,18 @@ pub trait CosmwasmQuery: CosmosClientQuery + Sized {
         Ok(StoreCodeBatchResponse { code_ids, res })
     }
 
-    pub async fn wasm_instantiate<S>(
+    async fn wasm_instantiate_commit<S>(
         &self,
+        chain_cfg: &ChainConfig,
         req: InstantiateRequest<S>,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<InstantiateResponse, CosmwasmError>
+    ) -> Result<InstantiateResponse<tx_commit::Response>, CosmwasmError>
     where
-        S: Serialize,
+        S: Serialize + Send,
     {
         let mut res = self
-            .wasm_instantiate_batch(vec![req], key, tx_options)
+            .wasm_instantiate_batch_commit(chain_cfg, vec![req], key, tx_options)
             .await?;
 
         Ok(InstantiateResponse {
@@ -88,31 +99,33 @@ pub trait CosmwasmQuery: CosmosClientQuery + Sized {
         })
     }
 
-    pub async fn wasm_instantiate_batch<S, I>(
+    async fn wasm_instantiate_batch_commit<S, I>(
         &self,
+        chain_cfg: &ChainConfig,
         reqs: I,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<InstantiateBatchResponse, CosmwasmError>
+    ) -> Result<InstantiateBatchResponse<tx_commit::Response>, CosmwasmError>
     where
-        S: Serialize,
-        I: IntoIterator<Item = InstantiateRequest<S>>,
+        S: Serialize + Send,
+        I: IntoIterator<Item = InstantiateRequest<S>> + Send,
     {
-        let sender_addr = key.to_addr(&self.cfg.prefix).await?;
+        let sender_addr = key
+            .to_addr(&chain_cfg.prefix, &chain_cfg.derivation_path)
+            .await?;
 
         let msgs = reqs
             .into_iter()
             .map(|r| r.to_proto(sender_addr.clone()))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let tx_raw = self
-            .tx_sign(msgs, Some(sender_addr), key, tx_options)
-            .await?;
+        let tx_raw = self.tx_sign(chain_cfg, msgs, key, tx_options).await?;
 
-        let res = self.tx_broadcast_block(&tx_raw).await?;
+        let res = self.broadcast_tx_commit(tx_raw.to_bytes()?).await?;
 
-        let events =
-            res.find_event_tags("instantiate".to_string(), "_contract_address".to_string());
+        let events = res
+            .deliver_tx
+            .find_event_tags("instantiate".to_string(), "_contract_address".to_string());
 
         if events.is_empty() {
             return Err(CosmwasmError::MissingEvent);
@@ -129,49 +142,52 @@ pub trait CosmwasmQuery: CosmosClientQuery + Sized {
         })
     }
 
-    pub async fn wasm_execute<S>(
+    async fn wasm_execute_commit<S>(
         &self,
+        chain_cfg: &ChainConfig,
         req: ExecRequest<S>,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<ExecResponse, CosmwasmError>
+    ) -> Result<tx_commit::Response, CosmwasmError>
     where
-        S: Serialize,
+        S: Serialize + Send,
     {
-        self.wasm_execute_batch(vec![req], key, tx_options).await
+        self.wasm_execute_batch_commit(chain_cfg, vec![req], key, tx_options)
+            .await
     }
 
-    pub async fn wasm_execute_batch<S, I>(
+    async fn wasm_execute_batch_commit<S, I>(
         &self,
+        chain_cfg: &ChainConfig,
         reqs: I,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<ExecResponse, CosmwasmError>
+    ) -> Result<tx_commit::Response, CosmwasmError>
     where
-        S: Serialize,
-        I: IntoIterator<Item = ExecRequest<S>>,
+        S: Serialize + Send,
+        I: IntoIterator<Item = ExecRequest<S>> + Send,
     {
-        let sender_addr = key.to_addr(&self.cfg.prefix).await?;
+        let sender_addr = key
+            .to_addr(&chain_cfg.prefix, &chain_cfg.derivation_path)
+            .await?;
 
         let msgs = reqs
             .into_iter()
             .map(|r| r.to_proto(sender_addr.clone()))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let tx_raw = self
-            .tx_sign(msgs, Some(sender_addr), key, tx_options)
-            .await?;
+        let tx_raw = self.tx_sign(chain_cfg, msgs, key, tx_options).await?;
 
-        let res = self.tx_broadcast_block(&tx_raw).await?;
+        let res = self.broadcast_tx_commit(tx_raw.to_bytes()?).await?;
 
-        Ok(ExecResponse { res })
+        Ok(res)
     }
 
-    pub async fn wasm_query<S: Serialize>(
+    async fn wasm_query_commit<S: Serialize + Sync>(
         &self,
         address: Address,
         msg: &S,
-    ) -> Result<QueryResponse, CosmwasmError> {
+    ) -> Result<QuerySmartContractStateResponse, CosmwasmError> {
         let payload = serde_json::to_vec(msg).map_err(CosmwasmError::json)?;
 
         let req = QuerySmartContractStateRequest {
@@ -180,53 +196,53 @@ pub trait CosmwasmQuery: CosmosClientQuery + Sized {
         };
 
         let res = self
-            .client
             .query::<_, QuerySmartContractStateResponse>(
                 req,
                 "/cosmwasm.wasm.v1.Query/SmartContractState",
             )
             .await?;
 
-        Ok(QueryResponse { res: res.into() })
+        Ok(res)
     }
 
-    pub async fn wasm_migrate<S>(
+    async fn wasm_migrate_commit<S>(
         &self,
+        chain_cfg: &ChainConfig,
         req: MigrateRequest<S>,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<MigrateResponse, CosmwasmError>
+    ) -> Result<tx_commit::Response, CosmwasmError>
     where
-        S: Serialize,
+        S: Serialize + Send,
     {
-        self.wasm_migrate_batch(vec![req], key, tx_options).await
+        self.wasm_migrate_batch_commit(chain_cfg, vec![req], key, tx_options)
+            .await
     }
 
-    pub async fn wasm_migrate_batch<S, I>(
+    async fn wasm_migrate_batch_commit<S, I>(
         &self,
+        chain_cfg: &ChainConfig,
         reqs: I,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<MigrateResponse, CosmwasmError>
+    ) -> Result<tx_commit::Response, CosmwasmError>
     where
-        S: Serialize,
-        I: IntoIterator<Item = MigrateRequest<S>>,
+        S: Serialize + Send,
+        I: IntoIterator<Item = MigrateRequest<S>> + Send,
     {
-        let sender_addr = key.to_addr(&self.cfg.prefix).await?;
+        let sender_addr = key
+            .to_addr(&chain_cfg.prefix, &chain_cfg.derivation_path)
+            .await?;
 
         let msgs = reqs
             .into_iter()
             .map(|r| r.to_proto(sender_addr.clone()))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let tx_raw = self
-            .tx_sign(msgs, Some(sender_addr), key, tx_options)
-            .await?;
+        let tx_raw = self.tx_sign(chain_cfg, msgs, key, tx_options).await?;
 
-        let res = self.tx_broadcast_block(&tx_raw).await?;
+        let res = self.broadcast_tx_commit(tx_raw.to_bytes()?).await?;
 
-        Ok(MigrateResponse { res })
+        Ok(res)
     }
-
-    // TODO: Finish
 }

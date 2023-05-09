@@ -3,23 +3,20 @@ use cosmrs::proto::cosmos::base::tendermint::v1beta1::{
     GetLatestBlockRequest, GetLatestBlockResponse, GetLatestValidatorSetRequest,
     GetLatestValidatorSetResponse, GetValidatorSetByHeightRequest, GetValidatorSetByHeightResponse,
 };
+use tendermint_rpc::Client;
 
-use crate::{chain::request::PaginationRequest, clients::client::CosmosClientQuery};
+use crate::{chain::request::PaginationRequest, prelude::ClientUtils};
 
-use super::{
-    error::TendermintError,
-    model::{BlockResponse, ValidatorSetResponse},
-};
+use super::{error::TendermintError, model::ValidatorSetResponse};
 
-impl<T> TendermintQuery for T where T: CosmosClientQuery {}
+impl<T> Tendermint for T where T: Client {}
 
 #[async_trait]
-pub trait TendermintQuery: CosmosClientQuery + Sized {
+pub trait Tendermint: Client + Sized {
     async fn tendermint_query_latest_block(&self) -> Result<BlockResponse, TendermintError> {
         let req = GetLatestBlockRequest {};
 
         let res = self
-            .client
             .query::<_, GetLatestBlockResponse>(
                 req,
                 "/cosmos.base.tendermint.v1beta1.Service/GetLatestBlock",
@@ -38,7 +35,6 @@ pub trait TendermintQuery: CosmosClientQuery + Sized {
         };
 
         let res = self
-            .client
             .query::<_, GetLatestValidatorSetResponse>(
                 req,
                 "/cosmos.base.tendermint.v1beta1.Service/GetLatestValidatorSet",
@@ -59,7 +55,6 @@ pub trait TendermintQuery: CosmosClientQuery + Sized {
         };
 
         let res = self
-            .client
             .query::<_, GetValidatorSetByHeightResponse>(
                 req,
                 "/cosmos.base.tendermint.v1beta1.Service/GetValidatorSetByHeight",

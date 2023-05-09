@@ -6,12 +6,11 @@ use cosmrs::proto::cosmwasm::wasm::v1::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::chain::error::DeserializeError;
 use crate::chain::msg::Msg;
 use crate::{
     chain::{
         coin::Coin,
-        response::{ChainResponse, ChainTxResponse, Code},
+        response::{ChainResponse, Code},
     },
     modules::auth::model::Address,
 };
@@ -74,40 +73,40 @@ impl TryFrom<StoreCodeProto> for MsgStoreCode {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq)]
-pub struct StoreCodeResponse {
+pub struct StoreCodeResponse<T> {
     pub code_id: u64,
-    pub res: ChainTxResponse,
+    pub res: T,
 }
 
-impl StoreCodeResponse {
-    pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
-        self.res.res.data()
-    }
-}
+// impl<T> StoreCodeResponse<T> {
+//     pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
+//         self.res.res.data()
+//     }
+// }
 
-impl AsRef<ChainTxResponse> for StoreCodeResponse {
-    fn as_ref(&self) -> &ChainTxResponse {
-        &self.res
-    }
-}
+// impl AsRef<ChainTxResponse> for StoreCodeResponse {
+//     fn as_ref(&self) -> &ChainTxResponse {
+//         &self.res
+//     }
+// }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq)]
-pub struct StoreCodeBatchResponse {
+pub struct StoreCodeBatchResponse<T> {
     pub code_ids: Vec<u64>,
-    pub res: ChainTxResponse,
+    pub res: T,
 }
 
-impl StoreCodeBatchResponse {
-    pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
-        self.res.res.data()
-    }
-}
+// impl StoreCodeBatchResponse {
+//     pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
+//         self.res.res.data()
+//     }
+// }
 
-impl AsRef<ChainTxResponse> for StoreCodeBatchResponse {
-    fn as_ref(&self) -> &ChainTxResponse {
-        &self.res
-    }
-}
+// impl AsRef<ChainTxResponse> for StoreCodeBatchResponse {
+//     fn as_ref(&self) -> &ChainTxResponse {
+//         &self.res
+//     }
+// }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct InstantiateRequest<S: Serialize> {
@@ -189,40 +188,40 @@ impl TryFrom<InstantiateRequestProto> for MsgInstantiateContract {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
-pub struct InstantiateResponse {
+pub struct InstantiateResponse<T> {
     pub address: Address,
-    pub res: ChainTxResponse,
+    pub res: T,
 }
 
-impl InstantiateResponse {
-    pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
-        self.res.res.data()
-    }
-}
+// impl InstantiateResponse {
+//     pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
+//         self.res.res.data()
+//     }
+// }
 
-impl AsRef<ChainTxResponse> for InstantiateResponse {
-    fn as_ref(&self) -> &ChainTxResponse {
-        &self.res
-    }
-}
+// impl AsRef<ChainTxResponse> for InstantiateResponse {
+//     fn as_ref(&self) -> &ChainTxResponse {
+//         &self.res
+//     }
+// }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
-pub struct InstantiateBatchResponse {
+pub struct InstantiateBatchResponse<T> {
     pub addresses: Vec<Address>,
-    pub res: ChainTxResponse,
+    pub res: T,
 }
 
-impl InstantiateBatchResponse {
-    pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
-        self.res.res.data()
-    }
-}
+// impl InstantiateBatchResponse {
+//     pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
+//         self.res.res.data()
+//     }
+// }
 
-impl AsRef<ChainTxResponse> for InstantiateBatchResponse {
-    fn as_ref(&self) -> &ChainTxResponse {
-        &self.res
-    }
-}
+// impl AsRef<ChainTxResponse> for InstantiateBatchResponse {
+//     fn as_ref(&self) -> &ChainTxResponse {
+//         &self.res
+//     }
+// }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct ExecRequest<S: Serialize> {
@@ -287,39 +286,39 @@ impl TryFrom<ExecRequestProto> for MsgExecuteContract {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq)]
-pub struct ExecResponse {
-    pub res: ChainTxResponse,
-}
+// #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq)]
+// pub struct ExecResponse {
+//     pub res: ChainTxResponse,
+// }
 
-impl ExecResponse {
-    pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
-        self.res.res.data()
-    }
-}
+// impl ExecResponse {
+//     pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
+//         self.res.res.data()
+//     }
+// }
 
-impl AsRef<ChainTxResponse> for ExecResponse {
-    fn as_ref(&self) -> &ChainTxResponse {
-        &self.res
-    }
-}
+// impl AsRef<ChainTxResponse> for ExecResponse {
+//     fn as_ref(&self) -> &ChainTxResponse {
+//         &self.res
+//     }
+// }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq)]
-pub struct QueryResponse {
-    pub res: ChainResponse,
-}
+// #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq)]
+// pub struct QueryResponse {
+//     pub res: ChainResponse,
+// }
 
-impl QueryResponse {
-    pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
-        self.res.data()
-    }
-}
+// impl QueryResponse {
+//     pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
+//         self.res.data()
+//     }
+// }
 
-impl AsRef<ChainResponse> for QueryResponse {
-    fn as_ref(&self) -> &ChainResponse {
-        &self.res
-    }
-}
+// impl AsRef<ChainResponse> for QueryResponse {
+//     fn as_ref(&self) -> &ChainResponse {
+//         &self.res
+//     }
+// }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct MigrateRequest<S: Serialize> {
@@ -380,22 +379,22 @@ impl TryFrom<MigrateRequestProto> for MsgMigrateContract {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq)]
-pub struct MigrateResponse {
-    pub res: ChainTxResponse,
-}
+// #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq)]
+// pub struct MigrateResponse {
+//     pub res: ChainTxResponse,
+// }
 
-impl MigrateResponse {
-    pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
-        self.res.res.data()
-    }
-}
+// impl MigrateResponse {
+//     pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
+//         self.res.res.data()
+//     }
+// }
 
-impl AsRef<ChainTxResponse> for MigrateResponse {
-    fn as_ref(&self) -> &ChainTxResponse {
-        &self.res
-    }
-}
+// impl AsRef<ChainTxResponse> for MigrateResponse {
+//     fn as_ref(&self) -> &ChainTxResponse {
+//         &self.res
+//     }
+// }
 
 impl From<QuerySmartContractStateResponse> for ChainResponse {
     fn from(res: QuerySmartContractStateResponse) -> ChainResponse {
@@ -410,14 +409,14 @@ impl From<QuerySmartContractStateResponse> for ChainResponse {
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct AccessConfig {
     pub permission: AccessType,
-    pub account: Address,
+    pub addresses: Vec<Address>,
 }
 
 impl From<AccessConfig> for cosmrs::cosmwasm::AccessConfig {
     fn from(config: AccessConfig) -> Self {
         Self {
             permission: config.permission.into(),
-            address: config.account.into(),
+            addresses: config.addresses.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -426,7 +425,7 @@ impl From<cosmrs::cosmwasm::AccessConfig> for AccessConfig {
     fn from(config: cosmrs::cosmwasm::AccessConfig) -> Self {
         Self {
             permission: config.permission.into(),
-            account: config.address.into(),
+            addresses: config.addresses.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -435,7 +434,8 @@ impl From<AccessConfig> for ProtoAccessConfig {
     fn from(config: AccessConfig) -> Self {
         Self {
             permission: config.permission as i32,
-            address: config.account.into(),
+            address: "".to_string(),
+            addresses: config.addresses.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -446,7 +446,11 @@ impl TryFrom<ProtoAccessConfig> for AccessConfig {
     fn try_from(config: ProtoAccessConfig) -> Result<Self, Self::Error> {
         Ok(Self {
             permission: config.permission.try_into()?,
-            account: config.address.parse()?,
+            addresses: config
+                .addresses
+                .into_iter()
+                .map(|s| s.parse())
+                .collect::<Result<Vec<_>, _>>()?,
         })
     }
 }
@@ -464,6 +468,8 @@ pub enum AccessType {
     OnlyAddress = 2,
     /// ACCESS_TYPE_EVERYBODY unrestricted
     Everybody = 3,
+    /// ACCESS_TYPE_ANY_OF_ADDRESSES unrestricted
+    AnyOfAddresses = 4,
 }
 
 impl AsRef<str> for AccessType {
@@ -473,6 +479,7 @@ impl AsRef<str> for AccessType {
             AccessType::Nobody => "ACCESS_TYPE_NOBODY",
             AccessType::OnlyAddress => "ACCESS_TYPE_ONLY_ADDRESS",
             AccessType::Everybody => "ACCESS_TYPE_EVERYBODY",
+            AccessType::AnyOfAddresses => "ACCESS_TYPE_ANY_OF_ADDRESSES",
         }
     }
 }
@@ -498,6 +505,7 @@ impl From<AccessType> for ProtoAccessType {
             AccessType::Nobody => ProtoAccessType::Nobody,
             AccessType::OnlyAddress => ProtoAccessType::OnlyAddress,
             AccessType::Everybody => ProtoAccessType::Everybody,
+            AccessType::AnyOfAddresses => ProtoAccessType::AnyOfAddresses,
         }
     }
 }
@@ -509,6 +517,7 @@ impl From<ProtoAccessType> for AccessType {
             ProtoAccessType::Nobody => AccessType::Nobody,
             ProtoAccessType::OnlyAddress => AccessType::OnlyAddress,
             ProtoAccessType::Everybody => AccessType::Everybody,
+            ProtoAccessType::AnyOfAddresses => AccessType::AnyOfAddresses,
         }
     }
 }

@@ -1,4 +1,5 @@
 use cosmrs::proto::prost::{DecodeError, EncodeError};
+use cosmrs::tendermint::Hash;
 use cosmrs::ErrorReport;
 use thiserror::Error;
 
@@ -42,6 +43,9 @@ pub enum ChainError {
 
     #[error("invalid cosmos msg sent to simulate endpoint")]
     Simulation,
+
+    #[error("tx_search timed out looking for: {tx_hash:?}")]
+    TxSearchTimeout { tx_hash: Hash },
 
     #[cfg(feature = "os_keyring")]
     #[error(transparent)]

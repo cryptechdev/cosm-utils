@@ -26,6 +26,9 @@ pub enum CosmwasmError {
 
     #[error(transparent)]
     ChainError(#[from] ChainError),
+
+    #[error(transparent)]
+    TendermintError(#[from] tendermint_rpc::Error),
 }
 
 impl CosmwasmError {

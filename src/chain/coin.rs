@@ -1,6 +1,5 @@
 use std::{fmt, num::ParseIntError, str::FromStr};
 
-use regex::Regex;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -86,15 +85,7 @@ impl FromStr for Denom {
     type Err = ChainError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // using the default denom validation from cosmos-sdk:
-        // https://github.com/cosmos/cosmos-sdk/blob/main/types/coin.go#L869
-        let re = Regex::new(r"^[a-zA-Z][a-zA-Z0-9/:._-]{2,127}$").unwrap();
-
-        if re.is_match(s) {
-            Ok(Denom(s.to_owned()))
-        } else {
-            Err(ChainError::Denom { name: s.to_owned() })
-        }
+        Ok(Denom(s.to_owned()))
     }
 }
 

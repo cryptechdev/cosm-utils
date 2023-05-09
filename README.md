@@ -1,14 +1,16 @@
-# Cosm-Tome
+# cosm-utils
 
-[![cosm-tome on crates.io](https://img.shields.io/crates/v/cosm-tome.svg)](https://crates.io/crates/cosm-tome) [![Docs](https://docs.rs/cosm-tome/badge.svg)](https://docs.rs/cosm-tome)
+Simple utility trait extensions for tendermint-rpc and cosmrs.
 
-Easy to use, high level Cosmos SDK rust client library.
+## Goals
 
+This crate is in very early development. It is not recommended for use in production.
+I am currently using this specifically for development purposes for other projects. 
+
+The goal of this crate is to provide simple utility methods for interacting with tendermint_rpc. 
 ## Inspiration
 
-The Cosmos SDK [already has a lot of different APIs](https://github.com/cosmos/cosmos-sdk/blob/main/docs/docs/core/06-grpc_rest.md). So this library supports plugging in different backing APIs (Cosmos gRPC, Cosmos REST, Tendermint RPC, etc). We hide this complexity away from the cosmos modules (cosmwasm, auth, bank) only exposing the same unified `CosmosClient` trait to all of them.
-
-As more APIs are added to Cosmos SDK, we will simply add a new `CosmosClient` implementation file keeping the cosmos module code untouched.
+Forked from cosm-tome, but with an emphasis on easier maintenance and a more modular approach.
 
 ## Crate Status
 
@@ -16,9 +18,8 @@ As more APIs are added to Cosmos SDK, we will simply add a new `CosmosClient` im
 
 | Backing API | Dev Status |
 | ------------- | ------------- | 
-| Tendermint RPC | 🔨 |
-| Cosmos SDK gRPC | 🔨 | 
-| Cosmos SDK REST | 🚫 |
+| Tendermint RPC HTTP/S | ✅ |
+| Tendermint RPC Websocket | ✅ | 
 
 ### Modules
 
@@ -46,10 +47,62 @@ As more APIs are added to Cosmos SDK, we will simply add a new `CosmosClient` im
 
 ## Usage
 
-TODO
+Simply bring the relative trait into scope and use the provided methods directly on a supported client.
 
+```rust
+    // bring traits into scope
+    use std::str::FromStr;
 
-## Development 
+    use cosm_utils::{
+        chain::{
+            coin::{Coin, Denom},
+            request::TxOptions,
+        },
+        config::cfg::ChainConfig,
+        modules::{
+            auth::model::Address,
+            bank::{
+                api::{BankCommit, BankQuery},
+                model::SendRequest,
+            },
+        },
+        signing_key::key::{Key, SigningKey},
+    };
+    use tendermint_rpc::{Client, HttpClient, WebSocketClient};
 
-`cargo t` to run the unit tests.
+    // Get you're relevant info
+    // Here are some examples of what that could look like
+    let mnemonic = "clump subway install trick split fiction mixed hundred much lady loyal crime fuel wrap book loud mammal plunge round penalty cereal desert essence chuckle";
+    let address = "cosmos1ya34jc44vvqzdhmwnfhkax7v4l3sj3stkwy9h5";
+    let key = SigningKey {
+        name: "test".to_string(),
+        key: Key::Mnemonic(mnemonic.to_string()),
+    };
+    let chain_cfg = ChainConfig {
+        denom: "uatom".to_string(),
+        prefix: "cosmos".to_string(),
+        chain_id: "cosmoshub-4".to_string(),
+        derivation_path: "m/44'/118'/0'/0/0".to_string(),
+        gas_price: 0.025f64,
+        gas_adjustment: 1.3f64,
+    };
+    let req = SendRequest {
+        from: Address::from_str(address).unwrap(),
+        to: Address::from_str(address).unwrap(),
+        amounts: vec![Coin {
+            denom: Denom::from_str(chain_cfg.denom.as_str()).unwrap(),
+            amount: 1u128,
+        }],
+    };
+    let tx_options = TxOptions::default();
 
+    // Create your client as usual
+    let rpc_endpoint = "http://localhost:26657";
+    let client = HttpClient::new(rpc_endpoint).unwrap();
+
+    // Then use the provided methods
+    let res = client
+        .bank_send_commit(&chain_cfg, req, &key, &tx_options)
+        .await
+        .unwrap();
+```

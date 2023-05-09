@@ -30,10 +30,10 @@ use super::{
     },
 };
 
-impl<T> BankQuery for T where T: Client {}
+impl<T> Bank for T where T: Client {}
 
 #[async_trait]
-pub trait BankQuery: Client + Sized {
+pub trait Bank: Client + Sized {
     /// Query the amount of `denom` currently held by an `address`
     async fn bank_query_balance(
         &self,
@@ -209,12 +209,7 @@ pub trait BankQuery: Client + Sized {
             params: res.params.map(TryInto::try_into).transpose()?,
         })
     }
-}
 
-impl<T> BankCommit for T where T: Client + Tx {}
-
-#[async_trait]
-pub trait BankCommit: Client + Tx {
     /// Send `amount` of funds from source (`from`) Address to destination (`to`) Address
     async fn bank_send_commit(
         &self,
@@ -246,12 +241,7 @@ pub trait BankCommit: Client + Tx {
 
         Ok(self.broadcast_tx_commit(tx_raw.to_bytes()?).await?)
     }
-}
 
-impl<T> BankSync for T where T: Client + Tx {}
-
-#[async_trait]
-pub trait BankSync: Client + Tx {
     /// Send `amount` of funds from source (`from`) Address to destination (`to`) Address
     async fn bank_send_sync(
         &self,
@@ -283,12 +273,7 @@ pub trait BankSync: Client + Tx {
 
         Ok(self.broadcast_tx_sync(tx_raw.to_bytes()?).await?)
     }
-}
 
-impl<T> BankAsync for T where T: Client + Tx {}
-
-#[async_trait]
-pub trait BankAsync: Client + Tx {
     /// Send `amount` of funds from source (`from`) Address to destination (`to`) Address
     async fn bank_send_async(
         &self,
