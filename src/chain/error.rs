@@ -3,7 +3,7 @@ use cosmrs::tendermint::Hash;
 use cosmrs::ErrorReport;
 use thiserror::Error;
 
-#[cfg(feature = "os_keyring")]
+#[cfg(feature = "keyring")]
 pub use keyring::Error as KeyringError;
 
 pub use cosmrs::rpc::Error as TendermintRPCError;
@@ -47,7 +47,7 @@ pub enum ChainError {
     #[error("tx_search timed out looking for: {tx_hash:?}")]
     TxSearchTimeout { tx_hash: Hash },
 
-    #[cfg(feature = "os_keyring")]
+    #[cfg(feature = "keyring")]
     #[error(transparent)]
     Keyring(#[from] KeyringError),
 

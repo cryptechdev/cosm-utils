@@ -308,7 +308,7 @@ pub trait Bank: Client + Sized {
 }
 
 #[cfg(test)]
-#[cfg(feature = "mocks")]
+#[cfg(feature = "mockall")]
 mod tests {
     use crate::{
         chain::{

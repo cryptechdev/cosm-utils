@@ -4,7 +4,7 @@ use cosmrs::crypto::{secp256k1, PublicKey};
 use cosmrs::tendermint::block::Height;
 use cosmrs::tx::{Body, SignDoc, SignerInfo};
 
-#[cfg(feature = "os_keyring")]
+#[cfg(feature = "keyring")]
 use keyring::Entry;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -36,7 +36,7 @@ impl SigningKey {
                 Ok(key.public_key())
             }
 
-            #[cfg(feature = "os_keyring")]
+            #[cfg(feature = "keyring")]
             Key::Keyring(params) => {
                 let entry = Entry::new(&params.service, &params.key_name)?;
                 let key = mnemonic_to_signing_key(&entry.get_password()?, derivation_path)?;
@@ -97,7 +97,7 @@ impl SigningKey {
                 Ok(raw.into())
             }
 
-            #[cfg(feature = "os_keyring")]
+            #[cfg(feature = "keyring")]
             Key::Keyring(params) => {
                 let sign_doc = build_sign_doc(
                     msgs,
@@ -155,7 +155,7 @@ pub enum Key {
     // TODO: Add Keyring password CRUD operations
     /// Use OS Keyring to access private key.
     /// Safe for testnet / mainnet.
-    #[cfg(feature = "os_keyring")]
+    #[cfg(feature = "keyring")]
     Keyring(KeyringParams),
     // TODO: Add ledger support(under a new ledger feature flag / Key variant)
 }
