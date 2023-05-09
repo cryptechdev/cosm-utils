@@ -73,7 +73,7 @@ where
 #[async_trait]
 impl<T> HashSearch for T
 where
-    T: Client + 'static + Send + Sync,
+    T: Client + Sync,
 {
     async fn hash_search(&self, hash: &Hash) -> Result<tx::Response, ChainError> {
         let query = Query::from(EventType::Tx).and_eq("tx.hash", hash.to_string());
