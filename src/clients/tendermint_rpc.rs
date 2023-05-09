@@ -61,10 +61,12 @@ where
             )
             .await?;
 
-        let gas_info = SimulateResponse::decode(res.value.as_slice())
-            .map_err(ChainError::prost_proto_decoding)?
-            .gas_info
-            .ok_or(ChainError::Simulation)?;
+        let sim_res = SimulateResponse::decode(res.value.as_slice())
+            .map_err(ChainError::prost_proto_decoding)?;
+
+        let gas_info = sim_res.gas_info.ok_or(ChainError::Simulation {
+            result: sim_res.result.unwrap(),
+        })?;
 
         Ok(gas_info.into())
     }

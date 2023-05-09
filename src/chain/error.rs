@@ -1,3 +1,4 @@
+use cosmrs::proto::cosmos::base::abci::v1beta1::Result;
 use cosmrs::proto::prost::{DecodeError, EncodeError};
 use cosmrs::tendermint::Hash;
 use cosmrs::ErrorReport;
@@ -8,9 +9,6 @@ pub use keyring::Error as KeyringError;
 
 pub use cosmrs::rpc::Error as TendermintRPCError;
 pub use cosmrs::tendermint::Error as TendermintError;
-// pub use tonic::transport::Error as CosmosGRPCError;
-
-// use super::response::ChainResponse;
 
 #[derive(Error, Debug)]
 pub enum ChainError {
@@ -41,8 +39,8 @@ pub enum ChainError {
     #[error("proto decoding error: {message:?}")]
     ProtoDecoding { message: String },
 
-    #[error("invalid cosmos msg sent to simulate endpoint")]
-    Simulation,
+    #[error("error during simulation: {result:?}")]
+    Simulation { result: Result },
 
     #[error("tx_search timed out looking for: {tx_hash:?}")]
     TxSearchTimeout { tx_hash: Hash },
