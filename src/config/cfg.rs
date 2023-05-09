@@ -5,13 +5,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq)]
 pub struct ChainConfig {
-    /// example: "uatom"
+    /// example: uatom
     pub denom: String,
-    /// example: "cosmos"
+    /// example: cosmos
     pub prefix: String,
-    /// example: "cosmoshub-4"
+    /// example: cosmoshub-4
     pub chain_id: String,
-    /// example: "m/44'/118'/0'/0/0"
+    /// example: m/44'/118'/0'/0/0
     pub derivation_path: String,
     /// example: 0.025
     pub gas_price: f64,
