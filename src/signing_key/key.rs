@@ -38,7 +38,7 @@ impl SigningKey {
 
             #[cfg(feature = "os_keyring")]
             Key::Keyring(params) => {
-                let entry = Entry::new(&params.service, &params.key_name);
+                let entry = Entry::new(&params.service, &params.key_name)?;
                 let key = mnemonic_to_signing_key(&entry.get_password()?, derivation_path)?;
                 Ok(key.public_key())
             }
@@ -99,11 +99,18 @@ impl SigningKey {
 
             #[cfg(feature = "os_keyring")]
             Key::Keyring(params) => {
-                let sign_doc =
-                    build_sign_doc(msgs, timeout_height, memo, &account, fee, public_key, cfg)?;
+                let sign_doc = build_sign_doc(
+                    msgs,
+                    timeout_height,
+                    memo,
+                    &account,
+                    fee,
+                    public_key,
+                    chain_id,
+                )?;
 
-                let entry = Entry::new(&params.service, &params.key_name);
-                let key = mnemonic_to_signing_key(&entry.get_password()?, &self.derivation_path)?;
+                let entry = Entry::new(&params.service, &params.key_name)?;
+                let key = mnemonic_to_signing_key(&entry.get_password()?, derivation_path)?;
 
                 let raw = sign_doc.sign(&key).map_err(ChainError::crypto)?;
                 Ok(raw.into())
