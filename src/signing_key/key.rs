@@ -183,6 +183,7 @@ fn mnemonic_to_signing_key(
     .map_err(|_| ChainError::DerviationPath)
 }
 
+#[allow(clippy::result_large_err)]
 fn raw_bytes_to_signing_key(bytes: &[u8]) -> Result<secp256k1::SigningKey, ChainError> {
     secp256k1::SigningKey::from_slice(bytes).map_err(ChainError::crypto)
 }

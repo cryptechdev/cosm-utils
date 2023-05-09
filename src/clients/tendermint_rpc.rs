@@ -37,6 +37,10 @@ where
             .abci_query(Some(path.to_string()), bytes, None, false)
             .await?;
 
+        if res.code.is_err() {
+            return Err(ChainError::CosmosSdk { res });
+        }
+
         let proto_res =
             O::decode(res.value.as_slice()).map_err(ChainError::prost_proto_decoding)?;
 
@@ -60,6 +64,10 @@ where
                 false,
             )
             .await?;
+
+        if res.code.is_err() {
+            return Err(ChainError::CosmosSdk { res });
+        }
 
         let sim_res = SimulateResponse::decode(res.value.as_slice())
             .map_err(ChainError::prost_proto_decoding)?;

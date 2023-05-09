@@ -2,6 +2,7 @@ use cosmrs::proto::cosmos::base::abci::v1beta1::Result;
 use cosmrs::proto::prost::{DecodeError, EncodeError};
 use cosmrs::tendermint::Hash;
 use cosmrs::ErrorReport;
+use tendermint_rpc::endpoint::abci_query::AbciQuery;
 use thiserror::Error;
 
 #[cfg(feature = "keyring")]
@@ -49,20 +50,8 @@ pub enum ChainError {
     #[error(transparent)]
     Keyring(#[from] KeyringError),
 
-    #[error("TxSync error: {res:?}")]
-    TxCommit {
-        res: tendermint_rpc::endpoint::broadcast::tx_commit::Response,
-    },
-
-    #[error("TxSync error: {res:?}")]
-    TxSync {
-        res: tendermint_rpc::endpoint::broadcast::tx_sync::Response,
-    },
-
-    #[error("TxAsync error: {res:?}")]
-    TxAsync {
-        res: tendermint_rpc::endpoint::broadcast::tx_async::Response,
-    },
+    #[error("CosmosSDK error: {res:?}")]
+    CosmosSdk { res: AbciQuery },
 
     #[error("Tendermint error")]
     Tendermint(#[from] TendermintError),
