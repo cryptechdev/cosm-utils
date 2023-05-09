@@ -12,6 +12,10 @@ pub mod chain;
 pub use tendermint_rpc;
 
 pub mod prelude {
-    pub use crate::clients::client::ClientUtils;
-    pub use crate::modules::{auth::api::Auth, bank::api::Bank, cosmwasm::api::Cosmwasm};
+    pub use crate::clients::client::ClientAbciQuery;
+    pub use crate::modules::{
+        auth::api::Auth,
+        bank::api::{BankTxAsync, BankTxCommit, BankTxSync},
+        cosmwasm::api::{CosmwasmQuery, CosmwasmTxCommit},
+    };
 }

@@ -7,7 +7,10 @@ use cosm_utils::{
     },
     clients::client::HashSearch,
     config::cfg::ChainConfig,
-    modules::{auth::model::Address, bank::model::SendRequest},
+    modules::{
+        auth::model::Address,
+        bank::{api::BankQuery, model::SendRequest},
+    },
     prelude::*,
     signing_key::key::{Key, SigningKey},
 };

@@ -1,6 +1,6 @@
 use crate::chain::error::ChainError;
 use crate::chain::request::PaginationRequest;
-use crate::clients::client::ClientUtils;
+use crate::clients::client::ClientAbciQuery;
 use crate::modules::auth::model::Account;
 use async_trait::async_trait;
 use cosmrs::proto::cosmos::auth::v1beta1::{
@@ -8,15 +8,14 @@ use cosmrs::proto::cosmos::auth::v1beta1::{
     QueryAccountsResponse, QueryParamsRequest, QueryParamsResponse,
 };
 use cosmrs::proto::traits::Message;
-use tendermint_rpc::Client;
 
 use super::error::AccountError;
 use super::model::{AccountResponse, AccountsResponse, Address, ParamsResponse};
 
-impl<T> Auth for T where T: Client {}
+impl<T> Auth for T where T: ClientAbciQuery {}
 
 #[async_trait]
-pub trait Auth: Client + Sized {
+pub trait Auth: ClientAbciQuery + Sized {
     async fn auth_query_account(&self, address: Address) -> Result<AccountResponse, AccountError> {
         let req = QueryAccountRequest {
             address: address.into(),

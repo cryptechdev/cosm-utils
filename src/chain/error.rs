@@ -46,12 +46,21 @@ pub enum ChainError {
     #[error("tx_search timed out looking for: {tx_hash:?}")]
     TxSearchTimeout { tx_hash: Hash },
 
+    #[error("tx_commit error: {res}")]
+    TxCommit { res: String },
+
+    #[error("tx_sync error: {res}")]
+    TxSync { res: String },
+
+    #[error("tx_async error: {res}")]
+    TxAsync { res: String },
+
     #[cfg(feature = "keyring")]
     #[error(transparent)]
     Keyring(#[from] KeyringError),
 
     #[error("CosmosSDK error: {res:?}")]
-    CosmosSdk { res: AbciQuery },
+    AbciQuery { res: AbciQuery },
 
     #[error("Tendermint error")]
     Tendermint(#[from] TendermintError),

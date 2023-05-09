@@ -6,19 +6,15 @@ use cosmrs::proto::cosmos::bank::v1beta1::{
     QuerySpendableBalancesRequest, QuerySpendableBalancesResponse, QuerySupplyOfRequest,
     QuerySupplyOfResponse, QueryTotalSupplyRequest, QueryTotalSupplyResponse,
 };
-use tendermint_rpc::{
-    endpoint::broadcast::{tx_async, tx_commit, tx_sync},
-    Client,
-};
 
 use crate::{
     chain::{
         coin::Denom,
         request::{PaginationRequest, TxOptions},
     },
-    clients::client::ClientUtils,
+    clients::client::{ClientAbciQuery, ClientTxAsync, ClientTxCommit, ClientTxSync},
     config::cfg::ChainConfig,
-    modules::{auth::model::Address, tx::api::Tx},
+    modules::auth::model::Address,
     signing_key::key::SigningKey,
 };
 
@@ -30,10 +26,10 @@ use super::{
     },
 };
 
-impl<T> Bank for T where T: Client {}
+impl<T> BankQuery for T where T: ClientAbciQuery {}
 
 #[async_trait]
-pub trait Bank: Client + Sized {
+pub trait BankQuery: ClientAbciQuery + Sized {
     /// Query the amount of `denom` currently held by an `address`
     async fn bank_query_balance(
         &self,
@@ -209,7 +205,12 @@ pub trait Bank: Client + Sized {
             params: res.params.map(TryInto::try_into).transpose()?,
         })
     }
+}
 
+impl<T> BankTxCommit for T where T: ClientTxCommit + ClientAbciQuery {}
+
+#[async_trait]
+pub trait BankTxCommit: ClientTxCommit + ClientAbciQuery {
     /// Send `amount` of funds from source (`from`) Address to destination (`to`) Address
     async fn bank_send_commit(
         &self,
@@ -217,7 +218,7 @@ pub trait Bank: Client + Sized {
         req: SendRequest,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<tx_commit::Response, BankError> {
+    ) -> Result<<Self as ClientTxCommit>::Response, BankError> {
         self.bank_send_batch_commit(chain_cfg, vec![req], key, tx_options)
             .await
     }
@@ -228,7 +229,7 @@ pub trait Bank: Client + Sized {
         reqs: I,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<tx_commit::Response, BankError>
+    ) -> Result<<Self as ClientTxCommit>::Response, BankError>
     where
         I: IntoIterator<Item = SendRequest> + Send,
     {
@@ -239,9 +240,14 @@ pub trait Bank: Client + Sized {
 
         let tx_raw = self.tx_sign(chain_cfg, msgs, key, tx_options).await?;
 
-        Ok(self.broadcast_tx_commit(tx_raw.to_bytes()?).await?)
+        Ok(self.broadcast_tx_commit(&tx_raw).await?)
     }
+}
 
+impl<T> BankTxSync for T where T: ClientTxSync + ClientAbciQuery {}
+
+#[async_trait]
+pub trait BankTxSync: ClientTxSync + ClientAbciQuery {
     /// Send `amount` of funds from source (`from`) Address to destination (`to`) Address
     async fn bank_send_sync(
         &self,
@@ -249,7 +255,7 @@ pub trait Bank: Client + Sized {
         req: SendRequest,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<tx_sync::Response, BankError> {
+    ) -> Result<<Self as ClientTxSync>::Response, BankError> {
         self.bank_send_batch_sync(chain_cfg, vec![req], key, tx_options)
             .await
     }
@@ -260,7 +266,7 @@ pub trait Bank: Client + Sized {
         reqs: I,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<tx_sync::Response, BankError>
+    ) -> Result<<Self as ClientTxSync>::Response, BankError>
     where
         I: IntoIterator<Item = SendRequest> + Send,
     {
@@ -271,9 +277,14 @@ pub trait Bank: Client + Sized {
 
         let tx_raw = self.tx_sign(chain_cfg, msgs, key, tx_options).await?;
 
-        Ok(self.broadcast_tx_sync(tx_raw.to_bytes()?).await?)
+        Ok(self.broadcast_tx_sync(&tx_raw).await?)
     }
+}
 
+impl<T> BankTxAsync for T where T: ClientTxAsync + ClientAbciQuery {}
+
+#[async_trait]
+pub trait BankTxAsync: ClientTxAsync + ClientAbciQuery {
     /// Send `amount` of funds from source (`from`) Address to destination (`to`) Address
     async fn bank_send_async(
         &self,
@@ -281,7 +292,7 @@ pub trait Bank: Client + Sized {
         req: SendRequest,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<tx_async::Response, BankError> {
+    ) -> Result<<Self as ClientTxAsync>::Response, BankError> {
         self.bank_send_batch_async(chain_cfg, vec![req], key, tx_options)
             .await
     }
@@ -292,7 +303,7 @@ pub trait Bank: Client + Sized {
         reqs: I,
         key: &SigningKey,
         tx_options: &TxOptions,
-    ) -> Result<tx_async::Response, BankError>
+    ) -> Result<<Self as ClientTxAsync>::Response, BankError>
     where
         I: IntoIterator<Item = SendRequest> + Send,
     {
@@ -303,7 +314,7 @@ pub trait Bank: Client + Sized {
 
         let tx_raw = self.tx_sign(chain_cfg, msgs, key, tx_options).await?;
 
-        Ok(self.broadcast_tx_async(tx_raw.to_bytes()?).await?)
+        Ok(self.broadcast_tx_async(&tx_raw).await?)
     }
 }
 

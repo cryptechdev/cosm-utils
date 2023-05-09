@@ -1,89 +1,111 @@
 use async_trait::async_trait;
-use cosmrs::proto::cosmos::tx::v1beta1::{SimulateRequest, SimulateResponse};
-use cosmrs::proto::traits::Message;
 use cosmrs::rpc::Client;
+use cosmrs::tendermint::abci::response::DeliverTx;
+use cosmrs::tendermint::abci::Event;
 use cosmrs::tendermint::Hash;
 use std::time::Duration;
+use tendermint_rpc::endpoint::abci_query::AbciQuery;
+use tendermint_rpc::endpoint::broadcast::{tx_async, tx_commit, tx_sync};
 use tendermint_rpc::endpoint::tx;
 use tendermint_rpc::query::{EventType, Query};
 use tendermint_rpc::Order;
 
 use crate::chain::error::ChainError;
-use crate::chain::fee::GasInfo;
 use crate::modules::tx::model::RawTx;
 
-use super::client::{ClientUtils, HashSearch};
+use super::client::{
+    ClientAbciQuery, ClientTxAsync, ClientTxCommit, ClientTxSync, GetErr, GetEvents, GetValue,
+    HashSearch,
+};
 
-fn encode_msg<T: Message>(msg: T) -> Result<Vec<u8>, ChainError> {
-    let mut data = Vec::with_capacity(msg.encoded_len());
-    msg.encode(&mut data)
-        .map_err(ChainError::prost_proto_encoding)?;
-    Ok(data)
+impl GetEvents for tx_commit::Response {
+    fn get_events(&self) -> &[Event] {
+        self.deliver_tx.events.as_slice()
+    }
+}
+
+impl GetEvents for DeliverTx {
+    fn get_events(&self) -> &[Event] {
+        self.events.as_slice()
+    }
+}
+
+impl GetErr for tx_commit::Response {
+    fn get_err(self) -> Result<Self, ChainError> {
+        if self.deliver_tx.code.is_err() {
+            return Err(ChainError::TxCommit {
+                res: format!("{:?}", self),
+            });
+        }
+        Ok(self)
+    }
+}
+
+impl GetErr for tx_sync::Response {
+    fn get_err(self) -> Result<Self, ChainError> {
+        if self.code.is_err() {
+            return Err(ChainError::TxSync {
+                res: format!("{:?}", self),
+            });
+        }
+        Ok(self)
+    }
+}
+
+impl GetErr for tx_async::Response {
+    fn get_err(self) -> Result<Self, ChainError> {
+        if self.code.is_err() {
+            return Err(ChainError::TxAsync {
+                res: format!("{:?}", self),
+            });
+        }
+        Ok(self)
+    }
+}
+
+impl GetErr for AbciQuery {
+    fn get_err(self) -> Result<Self, ChainError> {
+        if self.code.is_err() {
+            return Err(ChainError::AbciQuery { res: self });
+        }
+        Ok(self)
+    }
+}
+
+impl GetValue for AbciQuery {
+    fn get_value(&self) -> &[u8] {
+        &self.value
+    }
 }
 
 #[async_trait]
-impl<T> ClientUtils for T
+impl<T> ClientAbciQuery for T
 where
     T: Client + Sync,
 {
-    async fn query<I, O>(&self, msg: I, path: &str) -> Result<O, ChainError>
+    type Response = AbciQuery;
+
+    async fn abci_query<V>(
+        &self,
+        path: Option<String>,
+        data: V,
+        height: Option<u32>,
+        prove: bool,
+    ) -> Result<Self::Response, ChainError>
     where
-        I: Message + Default + 'static,
-        O: Message + Default + 'static,
+        V: Into<Vec<u8>> + Send,
     {
-        let bytes = encode_msg(msg)?;
-
         let res = self
-            .abci_query(Some(path.to_string()), bytes, None, false)
+            .abci_query(path, data, height.map(Into::into), prove)
             .await?;
-
-        if res.code.is_err() {
-            return Err(ChainError::CosmosSdk { res });
-        }
-
-        let proto_res =
-            O::decode(res.value.as_slice()).map_err(ChainError::prost_proto_decoding)?;
-
-        Ok(proto_res)
-    }
-
-    #[allow(deprecated)]
-    async fn simulate_tx(&self, tx: &RawTx) -> Result<GasInfo, ChainError> {
-        let req = SimulateRequest {
-            tx: None,
-            tx_bytes: tx.to_bytes()?,
-        };
-
-        let bytes = encode_msg(req)?;
-
-        let res = self
-            .abci_query(
-                Some("/cosmos.tx.v1beta1.Service/Simulate".to_string()),
-                bytes,
-                None,
-                false,
-            )
-            .await?;
-
-        if res.code.is_err() {
-            return Err(ChainError::CosmosSdk { res });
-        }
-
-        let sim_res = SimulateResponse::decode(res.value.as_slice())
-            .map_err(ChainError::prost_proto_decoding)?;
-
-        let gas_info = sim_res.gas_info.ok_or(ChainError::Simulation {
-            result: sim_res.result.unwrap(),
-        })?;
-
-        Ok(gas_info.into())
+        Ok(res.get_err()?)
     }
 }
 
 #[async_trait]
 impl<T> HashSearch for T
 where
-    T: Client + Sync,
+    T: ClientAbciQuery + Client + Sync,
 {
     async fn hash_search(&self, hash: &Hash) -> Result<tx::Response, ChainError> {
         let query = Query::from(EventType::Tx).and_eq("tx.hash", hash.to_string());
@@ -103,5 +125,41 @@ where
                 return Err(ChainError::TxSearchTimeout { tx_hash: *hash });
             }
         }
+    }
+}
+
+#[async_trait]
+impl<T> ClientTxCommit for T
+where
+    T: Client + Sync,
+{
+    type Response = tx_commit::Response;
+    async fn broadcast_tx_commit(&self, raw_tx: &RawTx) -> Result<Self::Response, ChainError> {
+        let res = self.broadcast_tx_commit(raw_tx.to_bytes()?).await?;
+        Ok(res.get_err()?)
+    }
+}
+
+#[async_trait]
+impl<T> ClientTxSync for T
+where
+    T: Client + Sync,
+{
+    type Response = tx_sync::Response;
+    async fn broadcast_tx_sync(&self, raw_tx: &RawTx) -> Result<Self::Response, ChainError> {
+        let res = self.broadcast_tx_sync(raw_tx.to_bytes()?).await?;
+        Ok(res.get_err()?)
+    }
+}
+
+#[async_trait]
+impl<T> ClientTxAsync for T
+where
+    T: Client + Sync,
+{
+    type Response = tx_async::Response;
+    async fn broadcast_tx_async(&self, raw_tx: &RawTx) -> Result<Self::Response, ChainError> {
+        let res = self.broadcast_tx_async(raw_tx.to_bytes()?).await?;
+        Ok(res.get_err()?)
     }
 }

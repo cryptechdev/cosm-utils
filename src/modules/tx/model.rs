@@ -89,8 +89,6 @@ impl RawTx {
     }
 }
 
-
-
 impl From<RawTx> for TxRaw {
     fn from(tx: RawTx) -> Self {
         tx.0
