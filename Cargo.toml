@@ -12,10 +12,6 @@ keywords = ["cosmos", "client", "rpc", "tendermint", "cosmwasm", "cosmrs"]
 categories = ["cryptography::cryptocurrencies"]
 license = "Apache-2.0"
 
-[features]
-mocks = ["mockall"]
-os_keyring = ["keyring"]
-
 [dependencies]
 cosmrs = { version = "0.14.0", features = ["rpc", "cosmwasm", "grpc"] }
 tendermint-rpc = "0.32.0"
