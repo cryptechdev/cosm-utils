@@ -14,10 +14,19 @@ Forked from cosm-tome, but with an emphasis on easier maintenance and a more mod
 
 ## Crate Status
 
+### Features
+
+| features | Dev Status |
+| -------- | ---------- | 
+| tendermint 0.34 | ✅ |
+| tendermint 0.37 | ✅ |
+| automatic tendermint version negotiation | ✅ |
+
+
 ### Clients
 
 | Backing API | Dev Status |
-| ------------- | ------------- | 
+| ----------- | ---------- | 
 | Tendermint RPC HTTP/S | ✅ |
 | Tendermint RPC Websocket | ✅ | 
 
@@ -47,13 +56,14 @@ Forked from cosm-tome, but with an emphasis on easier maintenance and a more mod
 
 ## Usage
 
-Simply bring the relative trait into scope and use the provided methods directly on a supported client.
+Simply import the `prelude` and use the provided methods directly on a supported client.
 
 ```rust
     // bring traits into scope
     use std::str::FromStr;
 
     use cosm_utils::{
+        prelude::*,
         chain::{
             coin::{Coin, Denom},
             request::TxOptions,

@@ -1,14 +1,25 @@
 use async_trait::async_trait;
-use cosmrs::rpc::Client;
-use cosmrs::tendermint::abci::response::DeliverTx;
-use cosmrs::tendermint::abci::Event;
-use cosmrs::tendermint::Hash;
+use cosmrs::{
+    rpc::Client,
+    tendermint::{
+        abci::{response::DeliverTx, Event},
+        Hash,
+    },
+};
+use lazy_static::lazy_static;
+use log::info;
 use std::time::Duration;
-use tendermint_rpc::endpoint::abci_query::AbciQuery;
-use tendermint_rpc::endpoint::broadcast::{tx_async, tx_commit, tx_sync};
-use tendermint_rpc::endpoint::tx;
-use tendermint_rpc::query::{EventType, Query};
-use tendermint_rpc::Order;
+use tendermint_rpc::{
+    client::CompatMode,
+    endpoint::{
+        abci_query::AbciQuery,
+        broadcast::{tx_async, tx_commit, tx_sync},
+        tx,
+    },
+    query::{EventType, Query},
+    HttpClient, Order,
+};
+use tokio::sync::RwLock;
 
 use crate::chain::error::ChainError;
 use crate::chain::tx::RawTx;
@@ -161,5 +172,51 @@ where
     async fn broadcast_tx_async(&self, raw_tx: &RawTx) -> Result<Self::Response, ChainError> {
         let res = self.broadcast_tx_async(raw_tx.to_bytes()?).await?;
         Ok(res.get_err()?)
+    }
+}
+
+#[cfg_attr(feature = "mockall", automock)]
+#[async_trait]
+pub trait ClientCompat: Client + Sized {
+    async fn query_compat_mode(&self) -> Result<CompatMode, ChainError> {
+        let version = self.status().await?.node_info.version;
+        info!("got tendermint version: {}", version);
+        Ok(CompatMode::from_version(version)?)
+    }
+
+    async fn get_compat(endpoint_url: &str) -> Result<Self, ChainError>;
+
+    /// WARNING: This function creates a global static to remember the compat mode
+    /// for convenience with repeated calls. Once the mode is set, it cannot not be changed
+    /// no matter how many times you call it.
+    async fn get_persistent_compat(endpoint_url: &str) -> Result<Self, ChainError>;
+}
+
+lazy_static! {
+    static ref COMPAT_MODE: RwLock<Option<CompatMode>> = RwLock::new(None);
+}
+
+#[async_trait]
+impl ClientCompat for HttpClient {
+    async fn get_compat(endpoint_url: &str) -> Result<Self, ChainError> {
+        let mut client = Self::new(endpoint_url)?;
+        let compat_mode = client.query_compat_mode().await?;
+        client.set_compat_mode(compat_mode);
+        Ok(client)
+    }
+
+    async fn get_persistent_compat(endpoint_url: &str) -> Result<Self, ChainError> {
+        let mut client = Self::new(endpoint_url)?;
+        let maybe_compat_mode = *COMPAT_MODE.read().await;
+        let compat_mode = match maybe_compat_mode {
+            Some(compat_mode) => compat_mode,
+            None => {
+                let compat_mode = client.query_compat_mode().await?;
+                *COMPAT_MODE.write().await = Some(compat_mode);
+                compat_mode
+            }
+        };
+        client.set_compat_mode(compat_mode);
+        Ok(client)
     }
 }
