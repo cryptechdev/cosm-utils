@@ -47,6 +47,10 @@ impl GetErr for tx_commit::Response {
             return Err(ChainError::TxCommit {
                 res: format!("{:?}", self),
             });
+        } else if self.check_tx.code.is_err() {
+            return Err(ChainError::TxCommit {
+                res: format!("{:?}", self),
+            });
         }
         Ok(self)
     }
