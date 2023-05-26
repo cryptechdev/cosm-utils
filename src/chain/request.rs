@@ -112,7 +112,7 @@ impl Default for TxOptions {
             fee: None,
             account: None,
             timeout_height: Some(0),
-            memo: "Made with cosm-tome client".to_string(),
+            memo: String::default(),
         }
     }
 }
