@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use cosmrs::proto::cosmos::bank::v1beta1::{
+use crate::proto::cosmos::bank::v1beta1::{
     QueryAllBalancesRequest, QueryAllBalancesResponse, QueryBalanceRequest, QueryBalanceResponse,
     QueryDenomMetadataRequest, QueryDenomMetadataResponse, QueryDenomsMetadataRequest,
     QueryDenomsMetadataResponse, QueryParamsRequest, QueryParamsResponse,

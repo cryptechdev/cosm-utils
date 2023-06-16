@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use cosmrs::proto::cosmos::base::tendermint::v1beta1::{
+use crate::proto::cosmos::base::tendermint::v1beta1::{
     GetLatestBlockRequest, GetLatestBlockResponse, GetLatestValidatorSetRequest,
     GetLatestValidatorSetResponse, GetValidatorSetByHeightRequest, GetValidatorSetByHeightResponse,
 };

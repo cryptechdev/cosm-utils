@@ -9,7 +9,7 @@ use crate::modules::auth::error::AccountError;
 use crate::modules::auth::model::{Account, AccountResponse, Address};
 use crate::signing_key::key::SigningKey;
 use async_trait::async_trait;
-use cosmrs::proto::cosmos::auth::v1beta1::{
+use crate::proto::cosmos::auth::v1beta1::{
     BaseAccount, QueryAccountRequest, QueryAccountResponse,
 };
 use cosmrs::proto::cosmos::tx::v1beta1::{SimulateRequest, SimulateResponse, TxRaw};

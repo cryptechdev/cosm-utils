@@ -67,6 +67,9 @@ pub enum ChainError {
 
     #[error(transparent)]
     RPC(#[from] TendermintRPCError),
+
+    #[error(transparent)]
+    Report(#[from] ErrorReport),
 }
 
 impl ChainError {

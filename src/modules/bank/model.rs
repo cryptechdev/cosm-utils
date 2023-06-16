@@ -1,7 +1,7 @@
 use std::fmt;
-
-use cosmrs::proto::cosmos::bank::v1beta1::{
-    DenomUnit as ProtoDenomUnit, Metadata, MsgSend, Params as ProtoParams,
+use cosmrs::proto::cosmos::bank::v1beta1::MsgSend;
+use crate::proto::cosmos::bank::v1beta1::{
+    DenomUnit as ProtoDenomUnit, Metadata, Params as ProtoParams,
     SendEnabled as ProtoSendEnabled,
 };
 use schemars::JsonSchema;
@@ -152,6 +152,7 @@ pub struct Params {
 impl TryFrom<ProtoParams> for Params {
     type Error = ChainError;
 
+    #[allow(deprecated)]
     fn try_from(p: ProtoParams) -> Result<Self, Self::Error> {
         Ok(Self {
             send_enabled: p
@@ -165,6 +166,8 @@ impl TryFrom<ProtoParams> for Params {
 }
 
 impl From<Params> for ProtoParams {
+
+    #[allow(deprecated)]
     fn from(p: Params) -> Self {
         Self {
             send_enabled: p.send_enabled.into_iter().map(Into::into).collect(),
@@ -236,7 +239,8 @@ impl TryFrom<MsgSend> for SendRequest {
             amounts: msg
                 .amount
                 .into_iter()
-                .map(TryFrom::try_from)
+                .map(TryInto::<cosmrs::Coin>::try_into)
+                .map(|x| x?.try_into())
                 .collect::<Result<Vec<_>, _>>()?,
         })
     }
@@ -259,7 +263,12 @@ impl TryFrom<SendRequest> for MsgSend {
         Ok(Self {
             from_address: req.from.into(),
             to_address: req.to.into(),
-            amount: req.amounts.into_iter().map(Into::into).collect(),
+            amount: req
+                .amounts
+                .into_iter()
+                .map(TryInto::<cosmrs::Coin>::try_into)
+                .map(|x| Result::<_, ChainError>::Ok(x?.into()))
+                .collect::<Result<_, _>>()?,
         })
     }
 }

@@ -64,6 +64,33 @@ impl From<Coin> for cosmrs::proto::cosmos::base::v1beta1::Coin {
     }
 }
 
+#[cfg(feature = "injective")]
+impl TryFrom<crate::proto::cosmos::base::v1beta1::Coin> for Coin {
+    type Error = ChainError;
+
+    fn try_from(coin: crate::proto::cosmos::base::v1beta1::Coin) -> Result<Self, Self::Error> {
+        Ok(Self {
+            denom: coin.denom.parse()?,
+            amount: coin
+                .amount
+                .parse()
+                .map_err(|e: ParseIntError| ChainError::ProtoDecoding {
+                    message: e.to_string(),
+                })?,
+        })
+    }
+}
+
+#[cfg(feature = "injective")]
+impl From<Coin> for crate::proto::cosmos::base::v1beta1::Coin {
+    fn from(coin: Coin) -> Self {
+        Self {
+            denom: coin.denom.into(),
+            amount: coin.amount.to_string(),
+        }
+    }
+}
+
 #[derive(
     Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq, PartialOrd, Ord, Hash,
 )]

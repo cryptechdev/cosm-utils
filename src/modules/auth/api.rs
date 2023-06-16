@@ -3,7 +3,7 @@ use crate::chain::request::PaginationRequest;
 use crate::clients::client::ClientAbciQuery;
 use crate::modules::auth::model::Account;
 use async_trait::async_trait;
-use cosmrs::proto::cosmos::auth::v1beta1::{
+use crate::proto::cosmos::auth::v1beta1::{
     BaseAccount, QueryAccountRequest, QueryAccountResponse, QueryAccountsRequest,
     QueryAccountsResponse, QueryParamsRequest, QueryParamsResponse,
 };

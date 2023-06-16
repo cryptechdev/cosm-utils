@@ -43,11 +43,7 @@ impl GetEvents for DeliverTx {
 
 impl GetErr for tx_commit::Response {
     fn get_err(self) -> Result<Self, ChainError> {
-        if self.deliver_tx.code.is_err() {
-            return Err(ChainError::TxCommit {
-                res: format!("{:?}", self),
-            });
-        } else if self.check_tx.code.is_err() {
+        if self.deliver_tx.code.is_err() || self.check_tx.code.is_err() {
             return Err(ChainError::TxCommit {
                 res: format!("{:?}", self),
             });

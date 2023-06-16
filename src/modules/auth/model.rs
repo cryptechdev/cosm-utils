@@ -1,6 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use cosmrs::proto::cosmos::auth::v1beta1::{BaseAccount, Params as CosmosParams};
+use crate::proto::cosmos::auth::v1beta1::{BaseAccount, Params as CosmosParams};
 use cosmrs::{crypto::PublicKey, AccountId};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -93,6 +93,7 @@ impl TryFrom<BaseAccount> for Account {
             address: proto.address.parse()?,
             pubkey: proto
                 .pub_key
+                .map(Into::<cosmrs::Any>::into)
                 .map(PublicKey::try_from)
                 .transpose()
                 .map_err(ChainError::crypto)?,

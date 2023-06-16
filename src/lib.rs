@@ -1,4 +1,19 @@
 #![allow(clippy::result_large_err)]
+
+#[cfg(all(feature = "generic", feature = "injective"))]
+compile_error!("Feature `generic` and `injective` are mutually exclusive and cannot be enabled together");
+
+#[cfg(all(not(feature = "generic"), not(feature = "injective")))]
+compile_error!("one of features `generic` or `injective` must be enabled");
+
+pub mod proto {
+    #[cfg(feature = "generic")]
+    pub use cosmrs::proto::*;
+
+    #[cfg(feature = "injective")]
+    pub use injective_std::types::*;
+}
+
 pub mod modules;
 
 pub mod clients;

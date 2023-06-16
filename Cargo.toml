@@ -12,6 +12,11 @@ keywords = ["cosmos", "client", "tendermint", "cosmwasm", "cosmrs"]
 categories = ["cryptography::cryptocurrencies"]
 license = "Apache-2.0"
 
+[features]
+default = ["generic"]
+generic = []
+injective = ["dep:injective-std"]
+
 [dependencies]
 cosmrs = { version = "0.14.0", features = ["rpc", "cosmwasm", "grpc"] }
 tendermint-rpc = "0.32.0"
@@ -27,6 +32,8 @@ lazy_static = "1"
 
 keyring = { version = "2", optional = true }
 mockall = { version = "0.11.2", optional = true }
+
+injective-std = { version = "0.1.3", optional = true }
 
 [dev-dependencies]
 tendermint-rpc = { version = "0.32.0", features = ["websocket-client", "http-client"]}

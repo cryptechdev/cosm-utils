@@ -166,7 +166,8 @@ impl TryFrom<MsgInstantiateContract> for InstantiateRequestProto {
             funds: msg
                 .funds
                 .into_iter()
-                .map(TryInto::try_into)
+                .map(TryInto::<cosmrs::Coin>::try_into)
+                .map(|x| x?.try_into())
                 .collect::<Result<Vec<_>, _>>()?,
         })
     }
