@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::proto::cosmos::base::query::v1beta1::{PageRequest, PageResponse};
+use cosmrs::proto::cosmos::base::query::v1beta1::{PageRequest, PageResponse};
 
 use crate::modules::auth::model::Account;
 

@@ -10,7 +10,7 @@ use crate::modules::auth::model::{Account, AccountResponse, Address};
 use crate::signing_key::key::SigningKey;
 use async_trait::async_trait;
 use crate::proto::cosmos::auth::v1beta1::{
-    BaseAccount, QueryAccountRequest, QueryAccountResponse,
+    QueryAccountRequest, QueryAccountResponse,
 };
 use cosmrs::proto::cosmos::tx::v1beta1::{SimulateRequest, SimulateResponse, TxRaw};
 use cosmrs::proto::traits::Message;
@@ -130,13 +130,27 @@ pub trait ClientAbciQuery: Sized {
             message: "Invalid account address".to_string(),
         })?;
 
-        let base_account = BaseAccount::decode(account.value.as_slice())
-            .map_err(ChainError::prost_proto_decoding)?;
+        #[cfg(feature = "generic")] {
+            let base_account = cosmrs::proto::cosmos::auth::v1beta1::BaseAccount::decode(account.value.as_slice())
+                .map_err(ChainError::prost_proto_decoding)?;
 
-        Ok(AccountResponse {
-            account: base_account.try_into()?,
-        })
+            Ok(AccountResponse {
+                account: base_account.try_into()?,
+            })
+        }
+
+        #[cfg(feature = "injective")] {
+
+            let eth_account = injective_std::types::injective::types::v1beta1::EthAccount::decode(account.value.as_slice()).unwrap();
+            let base_account = eth_account.base_account.ok_or(AccountError::Address {
+                message: "Invalid account address".to_string(),
+            })?;
+            Ok(AccountResponse {
+                account: base_account.try_into()?,
+            })
+        }
     }
+
 
     #[allow(deprecated)]
     async fn query_simulate_tx(&self, tx: &RawTx) -> Result<GasInfo, ChainError> {

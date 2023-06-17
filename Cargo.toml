@@ -15,7 +15,11 @@ license = "Apache-2.0"
 [features]
 default = ["generic"]
 generic = []
-injective = ["dep:injective-std"]
+injective = [
+    # "dep:injective-protobuf",
+    "dep:injective-std",
+    # "dep:protobuf",
+    ]
 
 [dependencies]
 cosmrs = { version = "0.14.0", features = ["rpc", "cosmwasm", "grpc"] }
@@ -33,7 +37,10 @@ lazy_static = "1"
 keyring = { version = "2", optional = true }
 mockall = { version = "0.11.2", optional = true }
 
-injective-std = { version = "0.1.3", optional = true }
+# Optional dependencies for injective
+# injective-protobuf = { git = "https://github.com/cryptechdev/cw-injective.git", branch = "dev", optional = true }
+injective-std = { git = "https://github.com/cryptechdev/cw-injective.git", branch = "dev", optional = true }
+# protobuf = { version = "2", optional = true }
 
 [dev-dependencies]
 tendermint-rpc = { version = "0.32.0", features = ["websocket-client", "http-client"]}

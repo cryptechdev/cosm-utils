@@ -1,6 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use crate::proto::cosmos::auth::v1beta1::{BaseAccount, Params as CosmosParams};
+use crate::proto::cosmos::auth::v1beta1::{BaseAccount};
 use cosmrs::{crypto::PublicKey, AccountId};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -129,8 +129,8 @@ pub struct Params {
     pub sig_verify_cost_secp256k1: u64,
 }
 
-impl From<CosmosParams> for Params {
-    fn from(p: CosmosParams) -> Self {
+impl From<cosmrs::proto::cosmos::auth::v1beta1::Params> for Params {
+    fn from(p: cosmrs::proto::cosmos::auth::v1beta1::Params) -> Self {
         Self {
             max_memo_characters: p.max_memo_characters,
             tx_sig_limit: p.tx_sig_limit,
@@ -141,7 +141,33 @@ impl From<CosmosParams> for Params {
     }
 }
 
-impl From<Params> for CosmosParams {
+impl From<Params> for cosmrs::proto::cosmos::auth::v1beta1::Params {
+    fn from(p: Params) -> Self {
+        Self {
+            max_memo_characters: p.max_memo_characters,
+            tx_sig_limit: p.tx_sig_limit,
+            tx_size_cost_per_byte: p.tx_size_cost_per_byte,
+            sig_verify_cost_ed25519: p.sig_verify_cost_ed25519,
+            sig_verify_cost_secp256k1: p.sig_verify_cost_secp256k1,
+        }
+    }
+}
+
+#[cfg(feature = "injective")]
+impl From<crate::proto::cosmos::auth::v1beta1::Params> for Params {
+    fn from(p: crate::proto::cosmos::auth::v1beta1::Params) -> Self {
+        Self {
+            max_memo_characters: p.max_memo_characters,
+            tx_sig_limit: p.tx_sig_limit,
+            tx_size_cost_per_byte: p.tx_size_cost_per_byte,
+            sig_verify_cost_ed25519: p.sig_verify_cost_ed25519,
+            sig_verify_cost_secp256k1: p.sig_verify_cost_secp256k1,
+        }
+    }
+}
+
+#[cfg(feature = "injective")]
+impl From<Params> for crate::proto::cosmos::auth::v1beta1::Params {
     fn from(p: Params) -> Self {
         Self {
             max_memo_characters: p.max_memo_characters,

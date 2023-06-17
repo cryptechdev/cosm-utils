@@ -1,6 +1,6 @@
 use std::fmt;
 use cosmrs::proto::cosmos::bank::v1beta1::MsgSend;
-use crate::proto::cosmos::bank::v1beta1::{
+use cosmrs::proto::cosmos::bank::v1beta1::{
     DenomUnit as ProtoDenomUnit, Metadata, Params as ProtoParams,
     SendEnabled as ProtoSendEnabled,
 };

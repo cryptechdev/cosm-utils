@@ -65,12 +65,23 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
 
         let res = self.broadcast_tx_commit(&tx_raw).await?;
 
+        #[cfg(feature = "generic")]
         let code_ids = res
             .find_event_tags("store_code".to_string(), "code_id".to_string())
             .into_iter()
             .map(|x| x.value.parse::<u64>())
             .collect::<Result<Vec<_>, _>>()
             .map_err(|_| CosmwasmError::MissingEvent)?;
+
+        #[cfg(feature = "injective")]
+        let code_ids = res
+            .find_event_tags("cosmwasm.wasm.v1.EventCodeStored".to_string(), "code_id".to_string())
+            .into_iter()
+            .map(|x| {x.value.replace('\"',"").parse::<u64>()})
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| CosmwasmError::MissingEvent)?;
+
+        println!("code_ids: {:?}", code_ids);
 
         Ok(StoreCodeBatchResponse { code_ids, res })
     }
@@ -119,17 +130,21 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
 
         let res = self.broadcast_tx_commit(&tx_raw).await?;
 
-        let events =
-            res.find_event_tags("instantiate".to_string(), "_contract_address".to_string());
-
-        if events.is_empty() {
-            return Err(CosmwasmError::MissingEvent);
-        }
-
-        let addrs = events
+        #[cfg(feature = "generic")]
+        let addrs = res
+            .find_event_tags("instantiate".to_string(), "_contract_address".to_string())
             .into_iter()
-            .map(|e| e.value.parse())
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|x| x.value.parse())
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| CosmwasmError::MissingEvent)?;
+
+        #[cfg(feature = "injective")]
+        let addrs = res
+            .find_event_tags("cosmwasm.wasm.v1.EventContractInstantiated".to_string(), "contract_address".to_string())
+            .into_iter()
+            .map(|x| {x.value.replace('\"',"").parse()})
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| CosmwasmError::MissingEvent)?;
 
         Ok(InstantiateBatchResponse {
             addresses: addrs,
