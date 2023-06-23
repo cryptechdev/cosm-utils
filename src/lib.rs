@@ -36,4 +36,6 @@ pub mod prelude {
         bank::api::{BankTxAsync, BankTxCommit, BankTxSync},
         cosmwasm::api::{CosmwasmQuery, CosmwasmTxCommit},
     };
+    #[cfg(feature = "injective")]
+    pub use crate::modules::inj_oracle::api::InjOracleQuery;
 }

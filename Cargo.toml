@@ -19,7 +19,7 @@ injective = [
     # "dep:injective-protobuf",
     "dep:injective-std",
     # "dep:protobuf",
-    ]
+]
 
 [dependencies]
 cosmrs = { version = "0.14.0", features = ["rpc", "cosmwasm", "grpc"] }

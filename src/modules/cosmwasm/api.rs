@@ -6,7 +6,7 @@ use crate::clients::client::{ClientTxCommit, GetEvents};
 use crate::config::cfg::ChainConfig;
 use crate::prelude::ClientAbciQuery;
 use cosmrs::proto::cosmwasm::wasm::v1::{
-    QuerySmartContractStateRequest, QuerySmartContractStateResponse,
+    QuerySmartContractStateRequest, QuerySmartContractStateResponse, QueryRawContractStateRequest, QueryRawContractStateResponse,
 };
 
 use crate::modules::auth::model::Address;
@@ -255,6 +255,27 @@ pub trait CosmwasmQuery: ClientAbciQuery {
             .query::<_, QuerySmartContractStateResponse>(
                 req,
                 "/cosmwasm.wasm.v1.Query/SmartContractState",
+            )
+            .await?;
+
+        Ok(res)
+    }
+
+    async fn wasm_query_raw<S: Serialize + Sync>(
+        &self,
+        address: Address,
+        payload: Vec<u8>,
+    ) -> Result<QueryRawContractStateResponse, CosmwasmError> {
+
+        let req = QueryRawContractStateRequest {
+            address: address.into(),
+            query_data: payload,
+        };
+        
+        let res = self
+            .query::<_, QueryRawContractStateResponse>(
+                req,
+                "/cosmwasm.wasm.v1.Query/RawContractState",
             )
             .await?;
 
