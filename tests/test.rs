@@ -48,7 +48,8 @@ async fn test() {
             Denom::from_str(chain_cfg.denom.as_str()).unwrap(),
         )
         .await
-        .unwrap();
+        .unwrap()
+        .value;
     println!("balance: {:?}", balance);
 
     let req = SendRequest {

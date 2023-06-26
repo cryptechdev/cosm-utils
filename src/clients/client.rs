@@ -9,6 +9,7 @@ use crate::modules::auth::error::AccountError;
 use crate::modules::auth::model::{Account, AccountResponse, Address};
 use crate::signing_key::key::SigningKey;
 use async_trait::async_trait;
+use schemars::JsonSchema;
 use crate::proto::cosmos::auth::v1beta1::{
     QueryAccountRequest, QueryAccountResponse,
 };
@@ -22,7 +23,7 @@ use cosmrs::tx::{Body, SignerInfo};
 #[cfg(feature = "mockall")]
 use mockall::automock;
 
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use tendermint_rpc::endpoint::tx;
 
 fn encode_msg<T: Message>(msg: T) -> Result<Vec<u8>, ChainError> {
@@ -85,6 +86,28 @@ pub trait ClientTxAsync {
     async fn broadcast_tx_async(&self, raw_tx: &RawTx) -> Result<Self::Response, ChainError>;
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct QueryResponse<R, O> {
+    pub response: R,
+    pub value: O,
+}
+
+impl<R, O> QueryResponse<R, O> {
+    pub fn map<V>(self, f: impl FnOnce(O) -> V) -> QueryResponse<R, V> {
+        QueryResponse {
+            response: self.response,
+            value: f(self.value),
+        }
+    }
+
+    pub fn try_map<V, E>(self, f: impl FnOnce(O) -> Result<V, E>) -> Result<QueryResponse<R, V>, E> {
+        Ok(QueryResponse {
+            response: self.response,
+            value: f(self.value)?,
+        })
+    }
+}
+
 #[cfg_attr(feature = "mockall", automock)]
 #[async_trait]
 pub trait ClientAbciQuery: Sized {
@@ -99,7 +122,7 @@ pub trait ClientAbciQuery: Sized {
     where
         V: Into<Vec<u8>> + Send;
 
-    async fn query<I, O>(&self, msg: I, path: &str) -> Result<O, ChainError>
+    async fn query<I, O>(&self, msg: I, path: &str) -> Result<QueryResponse<Self::Response, O>, ChainError>
     where
         Self: Sized,
         I: Message + Default + 'static,
@@ -109,12 +132,15 @@ pub trait ClientAbciQuery: Sized {
 
         let res = self
             .abci_query(Some(path.to_string()), bytes, None, false)
-            .await?;
+            .await?.get_err()?;
 
         let proto_res =
-            O::decode(res.get_err()?.get_value()).map_err(ChainError::prost_proto_decoding)?;
+            O::decode(res.get_value()).map_err(ChainError::prost_proto_decoding)?;
 
-        Ok(proto_res)
+        Ok(QueryResponse {
+            response: res,
+            value: proto_res,
+        })
     }
 
     async fn auth_query_account(&self, address: Address) -> Result<AccountResponse, AccountError> {
@@ -126,7 +152,7 @@ pub trait ClientAbciQuery: Sized {
             .query::<_, QueryAccountResponse>(req, "/cosmos.auth.v1beta1.Query/Account")
             .await?;
 
-        let account = res.account.ok_or(AccountError::Address {
+        let account = res.value.account.ok_or(AccountError::Address {
             message: "Invalid account address".to_string(),
         })?;
 
@@ -140,7 +166,6 @@ pub trait ClientAbciQuery: Sized {
         }
 
         #[cfg(feature = "injective")] {
-
             let eth_account = injective_std::types::injective::types::v1beta1::EthAccount::decode(account.value.as_slice()).unwrap();
             let base_account = eth_account.base_account.ok_or(AccountError::Address {
                 message: "Invalid account address".to_string(),

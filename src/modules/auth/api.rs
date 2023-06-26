@@ -24,7 +24,7 @@ pub trait Auth: ClientAbciQuery + Sized {
             .query::<_, QueryAccountResponse>(req, "/cosmos.auth.v1beta1.Query/Account")
             .await?;
 
-        let account = res.account.ok_or(AccountError::Address {
+        let account = res.value.account.ok_or(AccountError::Address {
             message: "Invalid account address".to_string(),
         })?;
 
@@ -62,6 +62,7 @@ pub trait Auth: ClientAbciQuery + Sized {
 
             #[cfg(feature = "generic")] {
                 let accounts: Vec<Account> = res
+                .value
                 .accounts
                 .into_iter()
                 .map(|a| {
@@ -73,12 +74,13 @@ pub trait Auth: ClientAbciQuery + Sized {
     
                 Ok(AccountsResponse {
                     accounts,
-                    next: res.pagination.map(Into::into),
+                    next: res.value.pagination.map(Into::into),
                 })
             }
     
             #[cfg(feature = "injective")] {
                 let accounts: Vec<Account> = res
+                    .value
                     .accounts
                     .into_iter()
                     .map(|a| {
@@ -94,7 +96,7 @@ pub trait Auth: ClientAbciQuery + Sized {
     
                 Ok(AccountsResponse {
                     accounts,
-                    next: res.pagination.map(Into::into),
+                    next: res.value.pagination.map(Into::into),
                 })
             }
 
@@ -109,7 +111,7 @@ pub trait Auth: ClientAbciQuery + Sized {
             .await?;
 
         Ok(ParamsResponse {
-            params: res.params.map(Into::into),
+            params: res.value.params.map(Into::into),
         })
     }
 }

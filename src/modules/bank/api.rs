@@ -9,10 +9,10 @@ use cosmrs::proto::cosmos::bank::v1beta1::{
 
 use crate::{
     chain::{
-        coin::Denom,
+        coin::{Denom, Coin},
         request::{PaginationRequest, TxOptions},
     },
-    clients::client::{ClientAbciQuery, ClientTxAsync, ClientTxCommit, ClientTxSync},
+    clients::client::{ClientAbciQuery, ClientTxAsync, ClientTxCommit, ClientTxSync, QueryResponse},
     config::cfg::ChainConfig,
     modules::auth::model::Address,
     signing_key::key::SigningKey,
@@ -35,7 +35,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         &self,
         address: Address,
         denom: Denom,
-    ) -> Result<BalanceResponse, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalanceResponse>, BankError> {
         let req = QueryBalanceRequest {
             address: address.into(),
             denom: denom.into(),
@@ -46,9 +46,13 @@ pub trait BankQuery: ClientAbciQuery + Sized {
             .await?;
 
         // NOTE: we are unwrapping here, because unknown denoms still have a 0 balance returned here
-        let balance = res.balance.unwrap().try_into()?;
-
-        Ok(BalanceResponse { balance })
+        // let balance = res.value.balance.unwrap().try_into()?;
+        res.try_map(|x| {
+            let balance: Coin = x.balance.unwrap().try_into()?;
+            Ok(BalanceResponse { balance })
+        })
+        // let balance: Coin = res.value.balance.clone().unwrap().try_into()?;
+        // Ok(res.map(|_| BalanceResponse { balance }))
     }
 
     /// Query all denom balances held by an `address`
@@ -56,7 +60,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         &self,
         address: Address,
         pagination: Option<PaginationRequest>,
-    ) -> Result<BalancesResponse, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalancesResponse>, BankError> {
         let req = QueryAllBalancesRequest {
             address: address.into(),
             pagination: pagination.map(Into::into),
@@ -66,15 +70,17 @@ pub trait BankQuery: ClientAbciQuery + Sized {
             .query::<_, QueryAllBalancesResponse>(req, "/cosmos.bank.v1beta1.Query/AllBalances")
             .await?;
 
-        let balances = res
-            .balances
-            .into_iter()
-            .map(TryInto::try_into)
-            .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(BalancesResponse {
-            balances,
-            next: res.pagination.map(Into::into),
+        res.try_map(|x| {
+            let balances = x
+                .balances
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?;
+    
+            Ok(BalancesResponse {
+                balances,
+                next: x.pagination.map(Into::into),
+            })
         })
     }
 
@@ -83,7 +89,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         &self,
         address: Address,
         pagination: Option<PaginationRequest>,
-    ) -> Result<BalancesResponse, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalancesResponse>, BankError> {
         let req = QuerySpendableBalancesRequest {
             address: address.into(),
             pagination: pagination.map(Into::into),
@@ -96,20 +102,22 @@ pub trait BankQuery: ClientAbciQuery + Sized {
             )
             .await?;
 
-        let balances = res
+        res.try_map(|x| {
+            let balances = x
             .balances
             .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(BalancesResponse {
-            balances,
-            next: res.pagination.map(Into::into),
+            Ok(BalancesResponse {
+                balances,
+                next: x.pagination.map(Into::into),
+            })
         })
     }
 
     /// Query global supply of `denom` for all accounts
-    async fn bank_query_supply(&self, denom: Denom) -> Result<BalanceResponse, BankError> {
+    async fn bank_query_supply(&self, denom: Denom) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalanceResponse>, BankError> {
         let req = QuerySupplyOfRequest {
             denom: denom.into(),
         };
@@ -118,17 +126,18 @@ pub trait BankQuery: ClientAbciQuery + Sized {
             .query::<_, QuerySupplyOfResponse>(req, "/cosmos.bank.v1beta1.Query/SupplyOf")
             .await?;
 
-        // NOTE: we are unwrapping here, because unknown denoms still have a 0 balance returned here
-        let balance = res.amount.unwrap().try_into()?;
-
-        Ok(BalanceResponse { balance })
+        res.try_map(|x| {
+            // NOTE: we are unwrapping here, because unknown denoms still have a 0 balance returned here
+            let balance = x.amount.unwrap().try_into()?;
+            Ok(BalanceResponse { balance })
+        })
     }
 
     /// Query global supply of all denoms for all accounts
     async fn bank_query_total_supply(
         &self,
         pagination: Option<PaginationRequest>,
-    ) -> Result<BalancesResponse, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalancesResponse>, BankError> {
         let req = QueryTotalSupplyRequest {
             pagination: pagination.map(Into::into),
         };
@@ -137,15 +146,17 @@ pub trait BankQuery: ClientAbciQuery + Sized {
             .query::<_, QueryTotalSupplyResponse>(req, "/cosmos.bank.v1beta1.Query/TotalSupply")
             .await?;
 
-        let balances = res
+        res.try_map(|x| {
+            let balances = x
             .supply
             .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(BalancesResponse {
-            balances,
-            next: res.pagination.map(Into::into),
+            Ok(BalancesResponse {
+                balances,
+                next: x.pagination.map(Into::into),
+            })
         })
     }
 
@@ -153,7 +164,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
     async fn bank_query_denom_metadata(
         &self,
         denom: Denom,
-    ) -> Result<DenomMetadataResponse, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, DenomMetadataResponse>, BankError> {
         let req = QueryDenomMetadataRequest {
             denom: denom.into(),
         };
@@ -162,8 +173,10 @@ pub trait BankQuery: ClientAbciQuery + Sized {
             .query::<_, QueryDenomMetadataResponse>(req, "/cosmos.bank.v1beta1.Query/DenomMetadata")
             .await?;
 
-        Ok(DenomMetadataResponse {
-            meta: res.metadata.map(TryInto::try_into).transpose()?,
+        res.try_map(|x| {
+            Ok(DenomMetadataResponse {
+                meta: x.metadata.map(TryInto::try_into).transpose()?,
+            })
         })
     }
 
@@ -171,7 +184,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
     async fn bank_query_denoms_metadata(
         &self,
         pagination: Option<PaginationRequest>,
-    ) -> Result<DenomsMetadataResponse, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, DenomsMetadataResponse>, BankError> {
         let req = QueryDenomsMetadataRequest {
             pagination: pagination.map(Into::into),
         };
@@ -183,26 +196,30 @@ pub trait BankQuery: ClientAbciQuery + Sized {
             )
             .await?;
 
-        Ok(DenomsMetadataResponse {
-            metas: res
-                .metadatas
-                .into_iter()
-                .map(TryInto::try_into)
-                .collect::<Result<Vec<_>, _>>()?,
-            next: res.pagination.map(Into::into),
+        res.try_map(|x| {
+            Ok(DenomsMetadataResponse {
+                metas: x
+                    .metadatas
+                    .into_iter()
+                    .map(TryInto::try_into)
+                    .collect::<Result<Vec<_>, _>>()?,
+                next: x.pagination.map(Into::into),
+            })
         })
     }
 
     /// Query bank module cosmos sdk params
-    async fn bank_query_params(&self) -> Result<ParamsResponse, BankError> {
+    async fn bank_query_params(&self) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, ParamsResponse>, BankError> {
         let req = QueryParamsRequest {};
 
         let res = self
             .query::<_, QueryParamsResponse>(req, "/cosmos.bank.v1beta1.Query/Params")
             .await?;
 
-        Ok(ParamsResponse {
-            params: res.params.map(TryInto::try_into).transpose()?,
+        res.try_map(|x| {
+            Ok(ParamsResponse {
+                params: x.params.map(TryInto::try_into).transpose()?,
+            })
         })
     }
 }

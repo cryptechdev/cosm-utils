@@ -1,5 +1,5 @@
 use super::error::InjOracleError;
-use crate::prelude::ClientAbciQuery;
+use crate::{prelude::ClientAbciQuery, clients::client::QueryResponse};
 use async_trait::async_trait;
 use injective_std::types::injective::oracle::v1beta1::{
     QueryPythPriceRequest, QueryPythPriceResponse, QueryPythPriceStatesRequest,
@@ -14,7 +14,7 @@ pub trait InjOracleQuery: ClientAbciQuery {
     async fn query_pyth_price<S: Serialize + Sync>(
         &self,
         price_id: String,
-    ) -> Result<QueryPythPriceResponse, InjOracleError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QueryPythPriceResponse>, InjOracleError> {
         let req = QueryPythPriceRequest { price_id };
 
         let res = self
@@ -26,7 +26,7 @@ pub trait InjOracleQuery: ClientAbciQuery {
 
     async fn query_pyth_price_states(
         &self,
-    ) -> Result<QueryPythPriceStatesResponse, InjOracleError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QueryPythPriceStatesResponse>, InjOracleError> {
         let req = QueryPythPriceStatesRequest {};
 
         let res = self

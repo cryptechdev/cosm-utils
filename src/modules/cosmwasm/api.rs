@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serde::Serialize;
 
 use crate::chain::request::TxOptions;
-use crate::clients::client::{ClientTxCommit, GetEvents};
+use crate::clients::client::{ClientTxCommit, GetEvents, QueryResponse};
 use crate::config::cfg::ChainConfig;
 use crate::prelude::ClientAbciQuery;
 use cosmrs::proto::cosmwasm::wasm::v1::{
@@ -243,7 +243,7 @@ pub trait CosmwasmQuery: ClientAbciQuery {
         &self,
         address: Address,
         msg: &S,
-    ) -> Result<QuerySmartContractStateResponse, CosmwasmError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QuerySmartContractStateResponse>, CosmwasmError> {
         let payload = serde_json::to_vec(msg).map_err(CosmwasmError::json)?;
 
         let req = QuerySmartContractStateRequest {
@@ -261,11 +261,11 @@ pub trait CosmwasmQuery: ClientAbciQuery {
         Ok(res)
     }
 
-    async fn wasm_query_raw<S: Serialize + Sync>(
+    async fn wasm_query_raw(
         &self,
         address: Address,
         payload: Vec<u8>,
-    ) -> Result<QueryRawContractStateResponse, CosmwasmError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QueryRawContractStateResponse>, CosmwasmError> {
 
         let req = QueryRawContractStateRequest {
             address: address.into(),
