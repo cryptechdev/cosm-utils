@@ -4,7 +4,7 @@ use serde::Serialize;
 use crate::chain::request::TxOptions;
 use crate::clients::client::{ClientTxCommit, GetEvents, QueryResponse};
 use crate::config::cfg::ChainConfig;
-use crate::prelude::ClientAbciQuery;
+use crate::prelude::{ClientAbciQuery, ClientTxAsync};
 use cosmrs::proto::cosmwasm::wasm::v1::{
     QuerySmartContractStateRequest, QuerySmartContractStateResponse, QueryRawContractStateRequest, QueryRawContractStateResponse,
 };
@@ -230,6 +230,52 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
         let tx_raw = self.tx_sign(chain_cfg, msgs, key, tx_options).await?;
 
         let res = self.broadcast_tx_commit(&tx_raw).await?;
+
+        Ok(res)
+    }
+}
+
+impl<T> CosmwasmTxAsync for T where T: ClientTxAsync + ClientAbciQuery {}
+
+#[async_trait]
+pub trait CosmwasmTxAsync: ClientTxAsync + ClientAbciQuery {
+    async fn wasm_execute_async<S>(
+        &self,
+        chain_cfg: &ChainConfig,
+        req: ExecRequest<S>,
+        key: &SigningKey,
+        tx_options: &TxOptions,
+    ) -> Result<<Self as ClientTxAsync>::Response, CosmwasmError>
+    where
+        S: Serialize + Send,
+    {
+        self.wasm_execute_batch_async(chain_cfg, vec![req], key, tx_options)
+            .await
+    }
+
+    async fn wasm_execute_batch_async<S, I>(
+        &self,
+        chain_cfg: &ChainConfig,
+        reqs: I,
+        key: &SigningKey,
+        tx_options: &TxOptions,
+    ) -> Result<<Self as ClientTxAsync>::Response, CosmwasmError>
+    where
+        S: Serialize + Send,
+        I: IntoIterator<Item = ExecRequest<S>> + Send,
+    {
+        let sender_addr = key
+            .to_addr(&chain_cfg.prefix, &chain_cfg.derivation_path)
+            .await?;
+
+        let msgs = reqs
+            .into_iter()
+            .map(|r| r.to_proto(sender_addr.clone()))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let tx_raw = self.tx_sign(chain_cfg, msgs, key, tx_options).await?;
+
+        let res = self.broadcast_tx_async(&tx_raw).await?;
 
         Ok(res)
     }

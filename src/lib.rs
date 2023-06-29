@@ -34,7 +34,7 @@ pub mod prelude {
     pub use crate::modules::{
         auth::api::Auth,
         bank::api::{BankTxAsync, BankTxCommit, BankTxSync},
-        cosmwasm::api::{CosmwasmQuery, CosmwasmTxCommit},
+        cosmwasm::api::{CosmwasmQuery, CosmwasmTxCommit, CosmwasmTxAsync},
     };
     #[cfg(feature = "injective")]
     pub use crate::modules::inj_oracle::api::InjOracleQuery;
