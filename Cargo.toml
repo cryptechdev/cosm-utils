@@ -16,9 +16,7 @@ license = "Apache-2.0"
 default = ["generic"]
 generic = []
 injective = [
-    # "dep:injective-protobuf",
     "dep:injective-std",
-    # "dep:protobuf",
 ]
 
 [dependencies]
@@ -38,9 +36,7 @@ keyring = { version = "2", optional = true }
 mockall = { version = "0.11.2", optional = true }
 
 # Optional dependencies for injective
-# injective-protobuf = { git = "https://github.com/cryptechdev/cw-injective.git", branch = "dev", optional = true }
-injective-std = { git = "https://github.com/cryptechdev/cw-injective.git", branch = "dev", optional = true }
-# protobuf = { version = "2", optional = true }
+injective-std = { git = "https://github.com/cryptechdev/cw-injective.git", branch = "eric/dev", optional = true }
 
 [dev-dependencies]
 tendermint-rpc = { version = "0.32.0", features = ["websocket-client", "http-client"]}
