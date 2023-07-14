@@ -35,6 +35,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         &self,
         address: Address,
         denom: Denom,
+        height: Option<u32>,
     ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalanceResponse>, BankError> {
         let req = QueryBalanceRequest {
             address: address.into(),
@@ -42,7 +43,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         };
 
         let res = self
-            .query::<_, QueryBalanceResponse>(req, "/cosmos.bank.v1beta1.Query/Balance")
+            .query::<_, QueryBalanceResponse>(req, "/cosmos.bank.v1beta1.Query/Balance", height)
             .await?;
 
         // NOTE: we are unwrapping here, because unknown denoms still have a 0 balance returned here
@@ -60,6 +61,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         &self,
         address: Address,
         pagination: Option<PaginationRequest>,
+        height: Option<u32>,
     ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalancesResponse>, BankError> {
         let req = QueryAllBalancesRequest {
             address: address.into(),
@@ -67,7 +69,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         };
 
         let res = self
-            .query::<_, QueryAllBalancesResponse>(req, "/cosmos.bank.v1beta1.Query/AllBalances")
+            .query::<_, QueryAllBalancesResponse>(req, "/cosmos.bank.v1beta1.Query/AllBalances", height)
             .await?;
 
         res.try_map(|x| {
@@ -89,6 +91,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         &self,
         address: Address,
         pagination: Option<PaginationRequest>,
+        height: Option<u32>,
     ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalancesResponse>, BankError> {
         let req = QuerySpendableBalancesRequest {
             address: address.into(),
@@ -99,6 +102,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
             .query::<_, QuerySpendableBalancesResponse>(
                 req,
                 "/cosmos.bank.v1beta1.Query/SpendableBalances",
+                height
             )
             .await?;
 
@@ -117,13 +121,17 @@ pub trait BankQuery: ClientAbciQuery + Sized {
     }
 
     /// Query global supply of `denom` for all accounts
-    async fn bank_query_supply(&self, denom: Denom) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalanceResponse>, BankError> {
+    async fn bank_query_supply(
+        &self, 
+        denom: Denom,
+        height: Option<u32>,
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalanceResponse>, BankError> {
         let req = QuerySupplyOfRequest {
             denom: denom.into(),
         };
 
         let res = self
-            .query::<_, QuerySupplyOfResponse>(req, "/cosmos.bank.v1beta1.Query/SupplyOf")
+            .query::<_, QuerySupplyOfResponse>(req, "/cosmos.bank.v1beta1.Query/SupplyOf", height)
             .await?;
 
         res.try_map(|x| {
@@ -137,13 +145,14 @@ pub trait BankQuery: ClientAbciQuery + Sized {
     async fn bank_query_total_supply(
         &self,
         pagination: Option<PaginationRequest>,
+        height: Option<u32>,
     ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalancesResponse>, BankError> {
         let req = QueryTotalSupplyRequest {
             pagination: pagination.map(Into::into),
         };
 
         let res = self
-            .query::<_, QueryTotalSupplyResponse>(req, "/cosmos.bank.v1beta1.Query/TotalSupply")
+            .query::<_, QueryTotalSupplyResponse>(req, "/cosmos.bank.v1beta1.Query/TotalSupply", height)
             .await?;
 
         res.try_map(|x| {
@@ -164,13 +173,14 @@ pub trait BankQuery: ClientAbciQuery + Sized {
     async fn bank_query_denom_metadata(
         &self,
         denom: Denom,
+        height: Option<u32>,
     ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, DenomMetadataResponse>, BankError> {
         let req = QueryDenomMetadataRequest {
             denom: denom.into(),
         };
 
         let res = self
-            .query::<_, QueryDenomMetadataResponse>(req, "/cosmos.bank.v1beta1.Query/DenomMetadata")
+            .query::<_, QueryDenomMetadataResponse>(req, "/cosmos.bank.v1beta1.Query/DenomMetadata", height)
             .await?;
 
         res.try_map(|x| {
@@ -184,6 +194,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
     async fn bank_query_denoms_metadata(
         &self,
         pagination: Option<PaginationRequest>,
+        height: Option<u32>,
     ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, DenomsMetadataResponse>, BankError> {
         let req = QueryDenomsMetadataRequest {
             pagination: pagination.map(Into::into),
@@ -193,6 +204,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
             .query::<_, QueryDenomsMetadataResponse>(
                 req,
                 "/cosmos.bank.v1beta1.Query/DenomsMetadata",
+                height
             )
             .await?;
 
@@ -209,11 +221,14 @@ pub trait BankQuery: ClientAbciQuery + Sized {
     }
 
     /// Query bank module cosmos sdk params
-    async fn bank_query_params(&self) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, ParamsResponse>, BankError> {
+    async fn bank_query_params(
+        &self,
+        height: Option<u32>,
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, ParamsResponse>, BankError> {
         let req = QueryParamsRequest {};
 
         let res = self
-            .query::<_, QueryParamsResponse>(req, "/cosmos.bank.v1beta1.Query/Params")
+            .query::<_, QueryParamsResponse>(req, "/cosmos.bank.v1beta1.Query/Params", height)
             .await?;
 
         res.try_map(|x| {

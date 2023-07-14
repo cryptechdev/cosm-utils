@@ -15,13 +15,17 @@ impl<T> Auth for T where T: ClientAbciQuery {}
 
 #[async_trait]
 pub trait Auth: ClientAbciQuery + Sized {
-    async fn auth_query_account(&self, address: Address) -> Result<AccountResponse, AccountError> {
+    async fn auth_query_account(
+        &self, 
+        address: Address,
+        height: Option<u32>,
+    ) -> Result<AccountResponse, AccountError> {
         let req = QueryAccountRequest {
             address: address.into(),
         };
 
         let res = self
-            .query::<_, QueryAccountResponse>(req, "/cosmos.auth.v1beta1.Query/Account")
+            .query::<_, QueryAccountResponse>(req, "/cosmos.auth.v1beta1.Query/Account", height)
             .await?;
 
         let account = res.value.account.ok_or(AccountError::Address {
@@ -51,13 +55,14 @@ pub trait Auth: ClientAbciQuery + Sized {
     async fn auth_query_accounts(
         &self,
         pagination: Option<PaginationRequest>,
+        height: Option<u32>,
     ) -> Result<AccountsResponse, AccountError> {
         let req = QueryAccountsRequest {
             pagination: pagination.map(Into::into),
         };
 
         let res = self
-            .query::<_, QueryAccountsResponse>(req, "/cosmos.auth.v1beta1.Query/Accounts")
+            .query::<_, QueryAccountsResponse>(req, "/cosmos.auth.v1beta1.Query/Accounts", height)
             .await?;
 
             #[cfg(feature = "generic")] {
@@ -103,11 +108,11 @@ pub trait Auth: ClientAbciQuery + Sized {
 
     }
 
-    async fn auth_query_params(&self) -> Result<ParamsResponse, AccountError> {
+    async fn auth_query_params(&self, height: Option<u32>) -> Result<ParamsResponse, AccountError> {
         let req = QueryParamsRequest {};
 
         let res = self
-            .query::<_, QueryParamsResponse>(req, "/cosmos.auth.v1beta1.Query/Params")
+            .query::<_, QueryParamsResponse>(req, "/cosmos.auth.v1beta1.Query/Params", height)
             .await?;
 
         Ok(ParamsResponse {

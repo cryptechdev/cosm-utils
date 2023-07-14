@@ -289,6 +289,7 @@ pub trait CosmwasmQuery: ClientAbciQuery {
         &self,
         address: Address,
         msg: &S,
+        height: Option<u32>,
     ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QuerySmartContractStateResponse>, CosmwasmError> {
         let payload = serde_json::to_vec(msg).map_err(CosmwasmError::json)?;
 
@@ -301,6 +302,7 @@ pub trait CosmwasmQuery: ClientAbciQuery {
             .query::<_, QuerySmartContractStateResponse>(
                 req,
                 "/cosmwasm.wasm.v1.Query/SmartContractState",
+                height
             )
             .await?;
 
@@ -311,6 +313,7 @@ pub trait CosmwasmQuery: ClientAbciQuery {
         &self,
         address: Address,
         payload: Vec<u8>,
+        height: Option<u32>,
     ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QueryRawContractStateResponse>, CosmwasmError> {
 
         let req = QueryRawContractStateRequest {
@@ -322,6 +325,7 @@ pub trait CosmwasmQuery: ClientAbciQuery {
             .query::<_, QueryRawContractStateResponse>(
                 req,
                 "/cosmwasm.wasm.v1.Query/RawContractState",
+                height
             )
             .await?;
 

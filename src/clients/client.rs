@@ -122,7 +122,7 @@ pub trait ClientAbciQuery: Sized {
     where
         V: Into<Vec<u8>> + Send;
 
-    async fn query<I, O>(&self, msg: I, path: &str) -> Result<QueryResponse<Self::Response, O>, ChainError>
+    async fn query<I, O>(&self, msg: I, path: &str, height: Option<u32>) -> Result<QueryResponse<Self::Response, O>, ChainError>
     where
         Self: Sized,
         I: Message + Default + 'static,
@@ -131,7 +131,7 @@ pub trait ClientAbciQuery: Sized {
         let bytes = encode_msg(msg)?;
 
         let res = self
-            .abci_query(Some(path.to_string()), bytes, None, false)
+            .abci_query(Some(path.to_string()), bytes, height, false)
             .await?.get_err()?;
 
         let proto_res =
@@ -149,7 +149,7 @@ pub trait ClientAbciQuery: Sized {
         };
 
         let res = self
-            .query::<_, QueryAccountResponse>(req, "/cosmos.auth.v1beta1.Query/Account")
+            .query::<_, QueryAccountResponse>(req, "/cosmos.auth.v1beta1.Query/Account", None)
             .await?;
 
         let account = res.value.account.ok_or(AccountError::Address {

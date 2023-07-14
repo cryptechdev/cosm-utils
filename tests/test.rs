@@ -46,6 +46,7 @@ async fn test() {
         .bank_query_balance(
             Address::from_str(address).unwrap(),
             Denom::from_str(chain_cfg.denom.as_str()).unwrap(),
+            None
         )
         .await
         .unwrap()
