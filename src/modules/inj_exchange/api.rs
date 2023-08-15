@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use injective_std::types::injective::exchange::v1beta1::{MsgCreateSpotLimitOrder, MsgBatchCreateSpotLimitOrders};
+use injective_std::types::injective::exchange::v1beta1::{MsgCreateSpotLimitOrder, MsgBatchCreateSpotLimitOrders, MsgBatchUpdateOrders};
 
 use crate::{
     chain::request::TxOptions,
@@ -45,23 +45,33 @@ impl<T> ExchangeTxCommit for T where T: ClientTxCommit + ClientAbciQuery {}
 
 #[async_trait]
 pub trait ExchangeTxCommit: ClientTxCommit + ClientAbciQuery {
-
-    async fn exchange_create_spot_limit_order_commit<I>(
+    async fn exchange_batch_update_orders_commit(
         &self,
         chain_cfg: &ChainConfig,
-        req: MsgCreateSpotLimitOrder,
+        req: MsgBatchUpdateOrders,
         key: &SigningKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxCommit>::Response, ExchangeError>
-    where
-        I: IntoIterator<Item = MsgCreateSpotLimitOrder> + Send,
     {
         let tx_raw = self.tx_sign(chain_cfg, vec![req], key, tx_options).await?;
 
         Ok(self.broadcast_tx_commit(&tx_raw).await?)
     }
 
-    async fn exchange_create_spot_limit_order_batch_commit<I>(
+    async fn exchange_create_spot_limit_order_commit(
+        &self,
+        chain_cfg: &ChainConfig,
+        req: MsgCreateSpotLimitOrder,
+        key: &SigningKey,
+        tx_options: &TxOptions,
+    ) -> Result<<Self as ClientTxCommit>::Response, ExchangeError>
+    {
+        let tx_raw = self.tx_sign(chain_cfg, vec![req], key, tx_options).await?;
+
+        Ok(self.broadcast_tx_commit(&tx_raw).await?)
+    }
+
+    async fn exchange_create_spot_limit_order_batch_commit(
         &self,
         chain_cfg: &ChainConfig,
         req: MsgBatchCreateSpotLimitOrders,

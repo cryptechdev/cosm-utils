@@ -1,5 +1,5 @@
 use cosmrs::Any;
-use injective_std::types::injective::exchange::v1beta1::{MsgCreateSpotLimitOrder, MsgBatchCreateSpotLimitOrders};
+use injective_std::types::injective::exchange::v1beta1::{MsgCreateSpotLimitOrder, MsgBatchCreateSpotLimitOrders, MsgBatchUpdateOrders};
 use prost::Message;
 
 use crate::chain::msg::IntoAny;
@@ -18,6 +18,17 @@ impl IntoAny for MsgCreateSpotLimitOrder {
 }
 
 impl IntoAny for MsgBatchCreateSpotLimitOrders {
+    type Err = ExchangeError;
+
+    fn into_any(self) -> Result<cosmrs::Any, Self::Err> {
+        Ok(Any{
+            type_url: Self::TYPE_URL.to_string(),
+            value: self.encode_to_vec(),
+        })
+    }
+}
+
+impl IntoAny for MsgBatchUpdateOrders {
     type Err = ExchangeError;
 
     fn into_any(self) -> Result<cosmrs::Any, Self::Err> {
