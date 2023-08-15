@@ -25,7 +25,7 @@ pub trait Auth: ClientAbciQuery + Sized {
         };
 
         let res = self
-            .query::<_, QueryAccountResponse>(req, "/cosmos.auth.v1beta1.Query/Account", height)
+            .query_path::<_, QueryAccountResponse>(req, "/cosmos.auth.v1beta1.Query/Account", height)
             .await?;
 
         let account = res.value.account.ok_or(AccountError::Address {
@@ -62,7 +62,7 @@ pub trait Auth: ClientAbciQuery + Sized {
         };
 
         let res = self
-            .query::<_, QueryAccountsResponse>(req, "/cosmos.auth.v1beta1.Query/Accounts", height)
+            .query_path::<_, QueryAccountsResponse>(req, "/cosmos.auth.v1beta1.Query/Accounts", height)
             .await?;
 
             #[cfg(feature = "generic")] {
@@ -112,7 +112,7 @@ pub trait Auth: ClientAbciQuery + Sized {
         let req = QueryParamsRequest {};
 
         let res = self
-            .query::<_, QueryParamsResponse>(req, "/cosmos.auth.v1beta1.Query/Params", height)
+            .query_path::<_, QueryParamsResponse>(req, "/cosmos.auth.v1beta1.Query/Params", height)
             .await?;
 
         Ok(ParamsResponse {

@@ -1,12 +1,13 @@
+use cosmrs::cosmwasm::MsgExecuteContract;
 use cosmrs::proto::cosmwasm::wasm::v1::MsgStoreCode;
 use cosmrs::proto::cosmwasm::wasm::v1::{
     AccessConfig as ProtoAccessConfig, AccessType as ProtoAccessType, MsgExecuteContract,
     MsgInstantiateContract, MsgMigrateContract, QuerySmartContractStateResponse,
 };
+use cosmrs::tx::MessageExt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::chain::msg::Msg;
 use crate::{
     chain::{
         coin::Coin,
@@ -40,9 +41,10 @@ pub struct StoreCodeProto {
     pub instantiate_perms: Option<AccessConfig>,
 }
 
-impl Msg for StoreCodeProto {
-    type Proto = MsgStoreCode;
-    type Err = CosmwasmError;
+impl MessageExt for StoreCodeProto {
+    fn to_bytes(&self) -> Result<Vec<u8>, cosmrs::proto::prost::EncodeError> {
+        
+    }
 }
 
 impl TryFrom<MsgStoreCode> for StoreCodeProto {
@@ -142,9 +144,8 @@ pub struct InstantiateRequestProto {
     pub funds: Vec<Coin>,
 }
 
-impl Msg for InstantiateRequestProto {
-    type Proto = MsgInstantiateContract;
-    type Err = CosmwasmError;
+impl MessageExt for InstantiateRequestProto {
+
 }
 
 impl TryFrom<MsgInstantiateContract> for InstantiateRequestProto {
@@ -287,40 +288,6 @@ impl TryFrom<ExecRequestProto> for MsgExecuteContract {
     }
 }
 
-// #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq)]
-// pub struct ExecResponse {
-//     pub res: ChainTxResponse,
-// }
-
-// impl ExecResponse {
-//     pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
-//         self.res.res.data()
-//     }
-// }
-
-// impl AsRef<ChainTxResponse> for ExecResponse {
-//     fn as_ref(&self) -> &ChainTxResponse {
-//         &self.res
-//     }
-// }
-
-// #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq)]
-// pub struct QueryResponse {
-//     pub res: ChainResponse,
-// }
-
-// impl QueryResponse {
-//     pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
-//         self.res.data()
-//     }
-// }
-
-// impl AsRef<ChainResponse> for QueryResponse {
-//     fn as_ref(&self) -> &ChainResponse {
-//         &self.res
-//     }
-// }
-
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct MigrateRequest<S: Serialize> {
     pub address: Address,
@@ -341,31 +308,6 @@ impl<S: Serialize> MigrateRequest<S> {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
-pub struct MigrateRequestProto {
-    pub signer_addr: Address,
-    pub contract_addr: Address,
-    pub new_code_id: u64,
-    pub msg: Vec<u8>,
-}
-
-impl Msg for MigrateRequestProto {
-    type Proto = MsgMigrateContract;
-    type Err = CosmwasmError;
-}
-
-impl TryFrom<MsgMigrateContract> for MigrateRequestProto {
-    type Error = CosmwasmError;
-
-    fn try_from(msg: MsgMigrateContract) -> Result<Self, Self::Error> {
-        Ok(Self {
-            signer_addr: msg.sender.parse()?,
-            contract_addr: msg.contract.parse()?,
-            new_code_id: msg.code_id,
-            msg: msg.msg,
-        })
-    }
-}
 
 impl TryFrom<MigrateRequestProto> for MsgMigrateContract {
     type Error = CosmwasmError;
@@ -380,22 +322,6 @@ impl TryFrom<MigrateRequestProto> for MsgMigrateContract {
     }
 }
 
-// #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq)]
-// pub struct MigrateResponse {
-//     pub res: ChainTxResponse,
-// }
-
-// impl MigrateResponse {
-//     pub fn data<'a, T: Deserialize<'a>>(&'a self) -> Result<T, DeserializeError> {
-//         self.res.res.data()
-//     }
-// }
-
-// impl AsRef<ChainTxResponse> for MigrateResponse {
-//     fn as_ref(&self) -> &ChainTxResponse {
-//         &self.res
-//     }
-// }
 
 impl From<QuerySmartContractStateResponse> for ChainResponse {
     fn from(res: QuerySmartContractStateResponse) -> ChainResponse {

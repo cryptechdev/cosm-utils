@@ -17,7 +17,7 @@ use tendermint_rpc::{
         tx,
     },
     query::{EventType, Query},
-    HttpClient, Order,
+    Order, HttpClient,
 };
 use tokio::sync::RwLock;
 

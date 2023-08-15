@@ -1,8 +1,7 @@
 use crate::chain::coin::{Coin, Denom};
 use crate::chain::error::ChainError;
 use crate::chain::fee::{Fee, GasInfo};
-use crate::chain::msg::Msg;
-use crate::chain::request::TxOptions;
+use crate::chain::request::{TxOptions, QueryRequest};
 use crate::chain::tx::RawTx;
 use crate::config::cfg::ChainConfig;
 use crate::modules::auth::error::AccountError;
@@ -14,12 +13,12 @@ use crate::proto::cosmos::auth::v1beta1::{
     QueryAccountRequest, QueryAccountResponse,
 };
 use cosmrs::proto::cosmos::tx::v1beta1::{SimulateRequest, SimulateResponse, TxRaw};
-use cosmrs::proto::traits::Message;
+use cosmrs::proto::traits::{Message, TypeUrl};
 use cosmrs::tendermint::Hash;
 use cosmrs::Any;
 
 use cosmrs::tendermint::abci::{Event, EventAttribute};
-use cosmrs::tx::{Body, SignerInfo};
+use cosmrs::tx::{Body, SignerInfo, MessageExt, Msg};
 #[cfg(feature = "mockall")]
 use mockall::automock;
 
@@ -88,8 +87,8 @@ pub trait ClientTxAsync {
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct QueryResponse<R, O> {
-    pub response: R,
     pub value: O,
+    pub response: R,
 }
 
 impl<R, O> QueryResponse<R, O> {
@@ -122,7 +121,27 @@ pub trait ClientAbciQuery: Sized {
     where
         V: Into<Vec<u8>> + Send;
 
-    async fn query<I, O>(&self, msg: I, path: &str, height: Option<u32>) -> Result<QueryResponse<Self::Response, O>, ChainError>
+    async fn query<I>(&self, msg: I, height: Option<u32>) -> Result<QueryResponse<Self::Response, I::Response>, ChainError>
+    where
+        Self: Sized,
+        I: Msg + QueryRequest + Send,
+    {
+        let bytes = msg.to_any()?.encode_to_vec();
+        // let bytes = encode_msg(msg)?;
+
+        let res = self
+            .abci_query(Some(I::PATH.to_string()), bytes, height, false)
+            .await?.get_err()?;
+
+        let any = Any::decode(res.get_value()).map_err(ChainError::prost_proto_decoding)?; 
+        let value = <I as QueryRequest>::Response::from_any(&any)?;
+        Ok(QueryResponse {
+            response: res,
+            value,
+        })
+    }
+
+    async fn query_path<I, O>(&self, msg: I, path: &str, height: Option<u32>) -> Result<QueryResponse<Self::Response, O>, ChainError>
     where
         Self: Sized,
         I: Message + Default + 'static,
@@ -149,7 +168,7 @@ pub trait ClientAbciQuery: Sized {
         };
 
         let res = self
-            .query::<_, QueryAccountResponse>(req, "/cosmos.auth.v1beta1.Query/Account", None)
+            .query_path::<_, QueryAccountResponse>(req, "/cosmos.auth.v1beta1.Query/Account", None)
             .await?;
 
         let account = res.value.account.ok_or(AccountError::Address {
@@ -263,8 +282,7 @@ pub trait ClientAbciQuery: Sized {
         tx_options: &TxOptions,
     ) -> Result<RawTx, AccountError>
     where
-        T: Msg + Serialize + Send + Sync,
-        <T as Msg>::Err: Send + Sync,
+        T: cosmrs::tx::Msg + Send + Sync,
     {
         let sender_addr = key
             .to_addr(&chain_cfg.prefix, &chain_cfg.derivation_path)

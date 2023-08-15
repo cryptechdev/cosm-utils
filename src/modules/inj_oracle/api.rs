@@ -19,7 +19,7 @@ pub trait InjOracleQuery: ClientAbciQuery {
         let req = QueryPythPriceRequest { price_id };
 
         let res = self
-            .query::<_, QueryPythPriceResponse>(req, "/injective.oracle.v1beta1.Query/PythPrice", height)
+            .query_path::<_, QueryPythPriceResponse>(req, "/injective.oracle.v1beta1.Query/PythPrice", height)
             .await?;
 
         Ok(res)
@@ -32,7 +32,7 @@ pub trait InjOracleQuery: ClientAbciQuery {
         let req = QueryPythPriceStatesRequest {};
 
         let res = self
-            .query::<_, QueryPythPriceStatesResponse>(
+            .query_path::<_, QueryPythPriceStatesResponse>(
                 req,
                 "/injective.oracle.v1beta1.Query/PythPriceStates",
                 height

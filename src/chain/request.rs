@@ -1,11 +1,24 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmrs::proto::cosmos::base::query::v1beta1::{PageRequest, PageResponse};
+use cosmrs::{proto::cosmos::base::query::v1beta1::{PageRequest, PageResponse}, tendermint::abci::Event};
 
 use crate::modules::auth::model::Account;
 
-use super::fee::Fee;
+use super::{fee::Fee, error::ChainError};
+
+pub trait QueryRequest: cosmrs::tx::Msg {
+    type Response: cosmrs::tx::Msg;
+    const PATH: &'static str;
+}
+
+pub trait ExecRequest: cosmrs::tx::Msg {
+    type Response: cosmrs::tx::Msg + TryFromEvents;
+}
+
+pub trait TryFromEvents: Sized {
+    fn try_from_events(events: &mut std::slice::Iter<'_, Event>) -> Result<Self, ChainError>;
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq, Hash)]
 pub struct PaginationRequest {

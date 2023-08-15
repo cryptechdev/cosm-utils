@@ -1,8 +1,9 @@
 use cosmrs::bip32;
 use cosmrs::bip32::secp256k1::elliptic_curve::rand_core::OsRng;
 use cosmrs::crypto::{secp256k1, PublicKey};
+use cosmrs::proto::traits::TypeUrl;
 use cosmrs::tendermint::block::Height;
-use cosmrs::tx::{Body, SignDoc, SignerInfo};
+use cosmrs::tx::{Body, SignDoc, SignerInfo, MessageExt};
 
 #[cfg(feature = "keyring")]
 use keyring::Entry;
@@ -11,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::chain::error::ChainError;
 use crate::chain::fee::Fee;
-use crate::chain::msg::Msg;
 use crate::chain::tx::RawTx;
 use crate::modules::auth::model::{Account, Address};
 
@@ -48,7 +48,7 @@ impl SigningKey {
     #[allow(clippy::too_many_arguments)]
     pub async fn sign(
         &self,
-        msgs: Vec<impl Msg + Serialize>,
+        msgs: Vec<impl cosmrs::tx::Msg>,
         timeout_height: u64,
         memo: &str,
         account: Account,
@@ -188,7 +188,7 @@ fn raw_bytes_to_signing_key(bytes: &[u8]) -> Result<secp256k1::SigningKey, Chain
 }
 
 fn build_sign_doc(
-    msgs: Vec<impl Msg>,
+    msgs: Vec<impl cosmrs::tx::Msg>,
     timeout_height: u64,
     memo: &str,
     account: &Account,
@@ -200,7 +200,7 @@ fn build_sign_doc(
 
     let tx = Body::new(
         msgs.into_iter()
-            .map(|m| m.into_any())
+            .map(|m| m.to_any())
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| ChainError::ProtoEncoding {
                 message: e.to_string(),

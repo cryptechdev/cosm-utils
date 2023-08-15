@@ -63,4 +63,23 @@ pub trait Tendermint: Client + Sized {
 
         res.try_into()
     }
+
+    async fn tendermint_query_unconfirmed_txs(
+        &self,
+        limit: u8,
+    ) -> Result<ValidatorSetResponse, TendermintError> {
+        let req = GetUnconfirmedRequest {
+            limit: block_height as i64,
+            pagination: pagination.map(Into::into),
+        };
+
+        let res = self
+            .query::<_, GetValidatorSetByHeightResponse>(
+                req,
+                "/cosmos.base.tendermint.v1beta1.Service/UnconfirmedTxs",
+            )
+            .await?;
+
+        res.try_into()
+    }
 }

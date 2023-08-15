@@ -13,6 +13,9 @@ pub use cosmrs::tendermint::Error as TendermintError;
 
 #[derive(Error, Debug)]
 pub enum ChainError {
+    #[error("Could not build ExecResponse from events: {0}")]
+    ExecResponse(String),
+
     #[error("invalid denomination: {name:?}")]
     Denom { name: String },
 
@@ -70,6 +73,9 @@ pub enum ChainError {
 
     #[error(transparent)]
     Report(#[from] ErrorReport),
+
+    #[error("Missing event: {0}")]
+    MissingEvent(String),
 }
 
 impl ChainError {

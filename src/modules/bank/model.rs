@@ -4,11 +4,11 @@ use cosmrs::proto::cosmos::bank::v1beta1::{
     DenomUnit as ProtoDenomUnit, Metadata, Params as ProtoParams,
     SendEnabled as ProtoSendEnabled,
 };
+use cosmrs::tx::MessageExt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::chain::coin::Denom;
-use crate::chain::msg::Msg;
 use crate::{
     chain::{coin::Coin, error::ChainError, request::PaginationResponse},
     modules::auth::model::Address,
@@ -224,9 +224,9 @@ impl fmt::Display for SendRequest {
     }
 }
 
-impl Msg for SendRequestProto {
-    type Proto = MsgSend;
-    type Err = BankError;
+impl MessageExt for SendRequestProto {
+    fn to_bytes(&self) -> Result<Vec<u8>, cosmrs::proto::prost::EncodeError> {
+    }
 }
 
 impl TryFrom<MsgSend> for SendRequest {
