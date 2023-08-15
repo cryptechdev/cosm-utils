@@ -1,6 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use crate::proto::cosmos::auth::v1beta1::{BaseAccount};
+use crate::proto::cosmos::auth::v1beta1::BaseAccount;
 use cosmrs::{crypto::PublicKey, AccountId};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

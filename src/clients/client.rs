@@ -1,7 +1,7 @@
 use crate::chain::coin::{Coin, Denom};
 use crate::chain::error::ChainError;
 use crate::chain::fee::{Fee, GasInfo};
-use crate::chain::msg::Msg;
+use crate::chain::msg::IntoAny;
 use crate::chain::request::TxOptions;
 use crate::chain::tx::RawTx;
 use crate::config::cfg::ChainConfig;
@@ -263,8 +263,8 @@ pub trait ClientAbciQuery: Sized {
         tx_options: &TxOptions,
     ) -> Result<RawTx, AccountError>
     where
-        T: Msg + Serialize + Send + Sync,
-        <T as Msg>::Err: Send + Sync,
+        T: IntoAny + Clone + Send + Sync,
+        <T as IntoAny>::Err: Send + Sync,
     {
         let sender_addr = key
             .to_addr(&chain_cfg.prefix, &chain_cfg.derivation_path)
@@ -286,7 +286,7 @@ pub trait ClientAbciQuery: Sized {
                 chain_cfg.gas_price,
                 chain_cfg.gas_adjustment,
                 msgs.iter()
-                    .map(|m| m.to_any())
+                    .map(|m| m.clone().into_any())
                     .collect::<Result<Vec<_>, _>>()
                     .map_err(|e| ChainError::ProtoEncoding {
                         message: e.to_string(),

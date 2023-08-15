@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::chain::error::ChainError;
 use crate::chain::fee::Fee;
-use crate::chain::msg::Msg;
+use crate::chain::msg::IntoAny;
 use crate::chain::tx::RawTx;
 use crate::modules::auth::model::{Account, Address};
 
@@ -48,7 +48,7 @@ impl SigningKey {
     #[allow(clippy::too_many_arguments)]
     pub async fn sign(
         &self,
-        msgs: Vec<impl Msg + Serialize>,
+        msgs: Vec<impl IntoAny>,
         timeout_height: u64,
         memo: &str,
         account: Account,
@@ -188,7 +188,7 @@ fn raw_bytes_to_signing_key(bytes: &[u8]) -> Result<secp256k1::SigningKey, Chain
 }
 
 fn build_sign_doc(
-    msgs: Vec<impl Msg>,
+    msgs: Vec<impl IntoAny>,
     timeout_height: u64,
     memo: &str,
     account: &Account,

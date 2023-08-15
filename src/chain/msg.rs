@@ -25,11 +25,29 @@ pub trait Msg:
         self.clone().into_any()
     }
 
-    /// Convert this message proto into [`Any`].
+    // /// Convert this message proto into [`Any`].
+    // fn into_any(self) -> Result<Any, Self::Err> {
+    //     Ok(self
+    //         .try_into()?
+    //         .to_any()
+    //         .map_err(ChainError::prost_proto_encoding)?)
+    // }
+}
+
+pub trait IntoAny {
+    type Err: From<ChainError> + Debug + Display;
+    fn into_any(self) -> Result<Any, Self::Err>;
+}
+
+impl<T> IntoAny for T 
+where T: Msg
+{
+    type Err = <T as Msg>::Err;
+
     fn into_any(self) -> Result<Any, Self::Err> {
         Ok(self
             .try_into()?
             .to_any()
-            .map_err(ChainError::prost_proto_encoding)?)
+            .map_err(ChainError::prost_proto_encoding)?) 
     }
 }
