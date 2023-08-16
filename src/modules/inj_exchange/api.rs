@@ -1,45 +1,29 @@
 use async_trait::async_trait;
-use injective_std::types::injective::exchange::v1beta1::{MsgCreateSpotLimitOrder, MsgBatchCreateSpotLimitOrders, MsgBatchUpdateOrders};
+use injective_std::types::injective::exchange::v1beta1::{MsgCreateSpotLimitOrder, MsgBatchCreateSpotLimitOrders, MsgBatchUpdateOrders, QuerySpotMarketsRequest, QuerySpotMarketsResponse};
 
 use crate::{
     chain::request::TxOptions,
-    clients::client::{ClientAbciQuery, ClientTxCommit},
+    clients::client::{ClientAbciQuery, ClientTxCommit, QueryResponse},
     config::cfg::ChainConfig,
     signing_key::key::SigningKey,
 };
 
 use super::error::ExchangeError;
 
-// impl<T> ExchangeQuery for T where T: ClientAbciQuery {}
+impl<T> ExchangeQuery for T where T: ClientAbciQuery {}
 
-// #[async_trait]
-// pub trait ExchangeQuery: ClientAbciQuery + Sized {
-//     /// Query the amount of `denom` currently held by an `address`
-//     async fn exchange_query_balance(
-//         &self,
-//         address: Address,
-//         denom: Denom,
-//         height: Option<u32>,
-//     ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalanceResponse>, ExchangeError> {
-//         let req = QueryBalanceRequest {
-//             address: address.into(),
-//             denom: denom.into(),
-//         };
+#[async_trait]
+pub trait ExchangeQuery: ClientAbciQuery + Sized {
+    /// Query the amount of `denom` currently held by an `address`
+    async fn exchange_query_spot_markets(
+        &self,
+        req: QuerySpotMarketsRequest,
+        height: Option<u32>,
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QuerySpotMarketsResponse>, ExchangeError> {
 
-//         let res = self
-//             .query::<_, QueryBalanceResponse>(req, "/cosmos.exchange.v1beta1.Query/Balance", height)
-//             .await?;
-
-//         // NOTE: we are unwrapping here, because unknown denoms still have a 0 balance returned here
-//         // let balance = res.value.balance.unwrap().try_into()?;
-//         res.try_map(|x| {
-//             let balance: Coin = x.balance.unwrap().try_into()?;
-//             Ok(BalanceResponse { balance })
-//         })
-//         // let balance: Coin = res.value.balance.clone().unwrap().try_into()?;
-//         // Ok(res.map(|_| BalanceResponse { balance }))
-//     }
-// }
+        Ok(self.query::<_, QuerySpotMarketsResponse>(req, "/injective.exchange.v1beta1.Query/SpotMarket", height).await?)
+    }
+}
 
 impl<T> ExchangeTxCommit for T where T: ClientTxCommit + ClientAbciQuery {}
 
