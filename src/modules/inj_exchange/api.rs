@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use injective_std::types::injective::exchange::v1beta1::{MsgCreateSpotLimitOrder, MsgBatchCreateSpotLimitOrders, MsgBatchUpdateOrders, QuerySpotMarketsRequest, QuerySpotMarketsResponse};
+use injective_std::types::injective::exchange::v1beta1::{MsgCreateSpotLimitOrder, MsgBatchCreateSpotLimitOrders, MsgBatchUpdateOrders, QuerySpotMarketsRequest, QuerySpotMarketsResponse, QuerySpotMarketResponse, QuerySpotMarketRequest};
 
 use crate::{
     chain::request::TxOptions,
@@ -21,7 +21,16 @@ pub trait ExchangeQuery: ClientAbciQuery + Sized {
         height: Option<u32>,
     ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QuerySpotMarketsResponse>, ExchangeError> {
 
-        Ok(self.query::<_, QuerySpotMarketsResponse>(req, "/injective.exchange.v1beta1.Query/SpotMarket", height).await?)
+        Ok(self.query::<_, QuerySpotMarketsResponse>(req, "/injective.exchange.v1beta1.Query/SpotMarkets", height).await?)
+    }
+
+    async fn exchange_query_spot_market(
+        &self,
+        req: QuerySpotMarketRequest,
+        height: Option<u32>,
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QuerySpotMarketResponse>, ExchangeError> {
+
+        Ok(self.query::<_, QuerySpotMarketResponse>(req, "/injective.exchange.v1beta1.Query/SpotMarket", height).await?)
     }
 }
 
