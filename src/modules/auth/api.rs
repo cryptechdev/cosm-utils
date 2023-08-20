@@ -32,7 +32,7 @@ pub trait Auth: ClientAbciQuery + Sized {
             message: "Invalid account address".to_string(),
         })?;
 
-        #[cfg(feature = "generic")] {
+        #[cfg(not(feature = "injective"))] {
             let base_account = cosmrs::proto::cosmos::auth::v1beta1::BaseAccount::decode(account.value.as_slice())
                 .map_err(ChainError::prost_proto_decoding)?;
 
@@ -65,7 +65,7 @@ pub trait Auth: ClientAbciQuery + Sized {
             .query::<_, QueryAccountsResponse>(req, "/cosmos.auth.v1beta1.Query/Accounts", height)
             .await?;
 
-            #[cfg(feature = "generic")] {
+            #[cfg(not(feature = "injective"))] {
                 let accounts: Vec<Account> = res
                 .value
                 .accounts

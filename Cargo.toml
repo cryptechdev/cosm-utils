@@ -13,8 +13,6 @@ categories = ["cryptography::cryptocurrencies"]
 license = "Apache-2.0"
 
 [features]
-default = ["generic"]
-generic = []
 injective = [
     "dep:injective-std",
 ]

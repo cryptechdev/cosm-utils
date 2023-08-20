@@ -156,7 +156,7 @@ pub trait ClientAbciQuery: Sized {
             message: "Invalid account address".to_string(),
         })?;
 
-        #[cfg(feature = "generic")] {
+        #[cfg(not(feature = "injective"))] {
             let base_account = cosmrs::proto::cosmos::auth::v1beta1::BaseAccount::decode(account.value.as_slice())
                 .map_err(ChainError::prost_proto_decoding)?;
 

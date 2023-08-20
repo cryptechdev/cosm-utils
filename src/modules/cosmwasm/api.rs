@@ -65,7 +65,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
 
         let res = self.broadcast_tx_commit(&tx_raw).await?;
 
-        #[cfg(feature = "generic")]
+        #[cfg(not(feature = "injective"))]
         let code_ids = res
             .find_event_tags("store_code".to_string(), "code_id".to_string())
             .into_iter()
@@ -130,7 +130,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
 
         let res = self.broadcast_tx_commit(&tx_raw).await?;
 
-        #[cfg(feature = "generic")]
+        #[cfg(not(feature = "injective"))]
         let addrs = res
             .find_event_tags("instantiate".to_string(), "_contract_address".to_string())
             .into_iter()
