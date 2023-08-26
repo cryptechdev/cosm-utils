@@ -38,7 +38,7 @@ impl SigningKey {
 
             #[cfg(feature = "keyring")]
             Key::Keyring(params) => {
-                let entry = Entry::new(&params.service, &params.key_name)?;
+                let entry = Entry::new(&self.name, &params.user)?;
                 let key = mnemonic_to_signing_key(&entry.get_password()?, derivation_path)?;
                 Ok(key.public_key())
             }
@@ -109,7 +109,7 @@ impl SigningKey {
                     chain_id,
                 )?;
 
-                let entry = Entry::new(&params.service, &params.key_name)?;
+                let entry = Entry::new(&self.name, &params.user)?;
                 let key = mnemonic_to_signing_key(&entry.get_password()?, derivation_path)?;
 
                 let raw = sign_doc.sign(&key).map_err(ChainError::crypto)?;
@@ -162,8 +162,9 @@ pub enum Key {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct KeyringParams {
-    pub service: String,
-    pub key_name: String,
+    /// The account that this key will be associated with
+    /// in the system keyring.
+    pub user: String,
 }
 
 fn mnemonic_to_signing_key(
@@ -222,4 +223,50 @@ fn build_sign_doc(
         account.account_number,
     )
     .map_err(ChainError::proto_encoding)
+}
+
+#[cfg(test)]
+mod tests {
+    use bip32::{Prefix, XPrv};
+    use cosmrs::{tendermint, AccountId};
+
+    use super::*;
+
+    /// Attempt at getting injectie key generation to work
+    #[ignore]
+    #[test]
+    fn mnemonic_deterministic() {
+        let phrase = "insert phrase here";
+        let mnemonic = bip32::Mnemonic::new(phrase, bip32::Language::English).unwrap();
+        let seed = mnemonic.to_seed("");
+        let root_xprv = XPrv::new(&seed).unwrap();
+        assert_eq!(
+            root_xprv,
+            XPrv::derive_from_path(&seed, &"m".parse().unwrap()).unwrap()
+        );
+
+        // Derive a child `XPrv` using the provided BIP32 derivation path
+        let child_path = "m/44'/60'/0'/0/0";
+        let child_xprv = XPrv::derive_from_path(&seed, &child_path.parse().unwrap()).unwrap();
+
+        // Get the `XPub` associated with `child_xprv`.
+        let child_xpub = child_xprv.public_key();
+
+        // Serialize `child_xprv` as a string with the `xprv` prefix.
+        let child_xprv_str = child_xprv.to_string(Prefix::XPRV);
+        assert!(child_xprv_str.starts_with("xprv"));
+
+        // Serialize `child_xpub` as a string with the `xpub` prefix.
+        let child_xpub_str = child_xpub.to_string(Prefix::XPUB);
+        assert!(child_xpub_str.starts_with("xpub"));
+
+        // Get the ECDSA/secp256k1 signing and verification keys for the xprv and xpub
+        let _signing_key = child_xprv.private_key();
+        let verification_key = child_xpub.public_key();
+        let _encoded_point = verification_key.to_encoded_point(false);
+
+        let id = tendermint::account::Id::from(*verification_key);
+        let account = AccountId::new("inj", id.as_bytes()).unwrap();
+        println!("addr: {account}");
+    }
 }
