@@ -227,46 +227,40 @@ fn build_sign_doc(
 
 #[cfg(test)]
 mod tests {
-    use bip32::{Prefix, XPrv};
-    use cosmrs::{tendermint, AccountId};
+    use bech32::{self, ToBase32};
+    use cosmrs::AccountId;
+    use ethers::signers::{coins_bip39::English, MnemonicBuilder, Signer};
 
-    use super::*;
-
-    /// Attempt at getting injectie key generation to work
+    /// Attempt at getting injective key generation to work
     #[ignore]
     #[test]
     fn mnemonic_deterministic() {
-        let phrase = "insert phrase here";
-        let mnemonic = bip32::Mnemonic::new(phrase, bip32::Language::English).unwrap();
-        let seed = mnemonic.to_seed("");
-        let root_xprv = XPrv::new(&seed).unwrap();
-        assert_eq!(
-            root_xprv,
-            XPrv::derive_from_path(&seed, &"m".parse().unwrap()).unwrap()
-        );
+        let mnemonic = "insert mnemonic here"; // for this test, the  Cryptech Dev Wallet was used
+        let addr = "inj1rmxnw6nmqqsnsk0d4c72v9794zfkgxkx23fart"; // address taken from injective and keplr
+        let index = 0u32;
 
-        // Derive a child `XPrv` using the provided BIP32 derivation path
-        let child_path = "m/44'/60'/0'/0/0";
-        let child_xprv = XPrv::derive_from_path(&seed, &child_path.parse().unwrap()).unwrap();
+        println!("confirmed injective address from keplr: {}", addr);
 
-        // Get the `XPub` associated with `child_xprv`.
-        let child_xpub = child_xprv.public_key();
+        let wallet = MnemonicBuilder::<English>::default()
+            .phrase(mnemonic)
+            .index(index)
+            .unwrap()
+            .build()
+            .unwrap();
 
-        // Serialize `child_xprv` as a string with the `xprv` prefix.
-        let child_xprv_str = child_xprv.to_string(Prefix::XPRV);
-        assert!(child_xprv_str.starts_with("xprv"));
+        let inj_addr = bech32::encode(
+            "inj",
+            wallet.address().as_bytes().to_base32(),
+            bech32::Variant::Bech32,
+        )
+        .unwrap();
 
-        // Serialize `child_xpub` as a string with the `xpub` prefix.
-        let child_xpub_str = child_xpub.to_string(Prefix::XPUB);
-        assert!(child_xpub_str.starts_with("xpub"));
+        println!("inj_addr: {}", inj_addr);
+        assert_eq!(addr, inj_addr.to_string());
 
-        // Get the ECDSA/secp256k1 signing and verification keys for the xprv and xpub
-        let _signing_key = child_xprv.private_key();
-        let verification_key = child_xpub.public_key();
-        let _encoded_point = verification_key.to_encoded_point(false);
+        let account = AccountId::new("inj", wallet.address().as_bytes()).unwrap();
 
-        let id = tendermint::account::Id::from(*verification_key);
-        let account = AccountId::new("inj", id.as_bytes()).unwrap();
-        println!("addr: {account}");
+        println!("account address: {}", account.to_string());
+        assert_eq!(addr, account.to_string());
     }
 }
