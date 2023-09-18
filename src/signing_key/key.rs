@@ -16,14 +16,14 @@ use crate::chain::tx::RawTx;
 use crate::modules::auth::model::{Account, Address};
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
-pub struct SigningKey {
+pub struct UserKey {
     /// human readable key name
     pub name: String,
     /// private key associated with `name`
     pub key: Key,
 }
 
-impl SigningKey {
+impl UserKey {
     pub async fn public_key(&self, derivation_path: &str) -> Result<PublicKey, ChainError> {
         match &self.key {
             Key::Raw(bytes) => {
@@ -131,10 +131,10 @@ impl SigningKey {
         Ok(account.into())
     }
 
-    pub fn random_mnemonic(key_name: String) -> SigningKey {
+    pub fn random_mnemonic(key_name: String) -> UserKey {
         let mnemonic = bip32::Mnemonic::random(OsRng, Default::default());
 
-        SigningKey {
+        UserKey {
             name: key_name,
             key: Key::Mnemonic(mnemonic.phrase().to_string()),
         }
@@ -167,6 +167,7 @@ pub struct KeyringParams {
     pub user: String,
 }
 
+#[cfg(not(feature = "injective"))]
 fn mnemonic_to_signing_key(
     mnemonic: &str,
     derivation_path: &str,
@@ -182,6 +183,23 @@ fn mnemonic_to_signing_key(
             .map_err(|_| ChainError::DerviationPath)?,
     )
     .map_err(|_| ChainError::DerviationPath)
+}
+
+#[cfg(feature = "injective")]
+fn mnemonic_to_signing_key(
+    mnemonic: &str,
+    _derivation_path: &str,
+) -> Result<secp256k1::SigningKey, ChainError> {
+    use ethers_signers::{coins_bip39::English, MnemonicBuilder};
+
+    let wallet = MnemonicBuilder::<English>::default()
+        .phrase(mnemonic)
+        .index(0u32)
+        .unwrap()
+        .build()
+        .unwrap();
+    let bytes = wallet.signer().clone().to_bytes();
+    Ok(secp256k1::SigningKey::from_slice(&bytes).unwrap())
 }
 
 fn raw_bytes_to_signing_key(bytes: &[u8]) -> Result<secp256k1::SigningKey, ChainError> {
@@ -231,15 +249,26 @@ mod tests {
     use cosmrs::AccountId;
     use ethers::signers::{coins_bip39::English, MnemonicBuilder, Signer};
 
+    use crate::signing_key::key::{Key, UserKey};
+
     /// Attempt at getting injective key generation to work
     #[ignore]
-    #[test]
-    fn mnemonic_deterministic() {
-        let mnemonic = "insert mnemonic here"; // for this test, the  Cryptech Dev Wallet was used
+    #[tokio::test]
+    async fn mnemonic_deterministic() {
+        let mnemonic = "cryptech dev key"; // for this test, the  Cryptech Dev Wallet was used
         let addr = "inj1rmxnw6nmqqsnsk0d4c72v9794zfkgxkx23fart"; // address taken from injective and keplr
         let index = 0u32;
 
         println!("confirmed injective address from keplr: {}", addr);
+
+        let user_key = UserKey {
+            name: "test".to_string(),
+            key: Key::Mnemonic(mnemonic.to_string()),
+        };
+
+        let inj_addr = user_key.to_addr("inj", "test").await.unwrap();
+
+        assert_eq!(inj_addr.as_ref(), addr);
 
         let wallet = MnemonicBuilder::<English>::default()
             .phrase(mnemonic)
@@ -260,7 +289,7 @@ mod tests {
 
         let account = AccountId::new("inj", wallet.address().as_bytes()).unwrap();
 
-        println!("account address: {}", account.to_string());
+        println!("account address: {}", account);
         assert_eq!(addr, account.to_string());
     }
 }

@@ -12,16 +12,17 @@ use cosm_utils::{
         bank::{api::BankQuery, model::SendRequest},
     },
     prelude::*,
-    signing_key::key::{Key, SigningKey},
+    signing_key::key::{Key, UserKey},
 };
 use tendermint_rpc::{Client, WebSocketClient};
 
+#[ignore]
 #[tokio::test]
 async fn test() {
     let mnemonic = "evoke another library napkin rich clutch evil hungry supreme smart idea discover admit remain high torch dumb immense economy truck episode coral way pupil";
     let address = "noria1ds0jnp7ful8hxmkstr5d2gxm28d8l0ecuff2v9";
     let other_address = "noria1ya34jc44vvqzdhmwnfhkax7v4l3sj3stkwy9h5";
-    let key = SigningKey {
+    let key = UserKey {
         name: "test".to_string(),
         key: Key::Mnemonic(mnemonic.to_string()),
     };
@@ -46,7 +47,7 @@ async fn test() {
         .bank_query_balance(
             Address::from_str(address).unwrap(),
             Denom::from_str(chain_cfg.denom.as_str()).unwrap(),
-            None
+            None,
         )
         .await
         .unwrap()

@@ -6,11 +6,12 @@ use crate::clients::client::{ClientTxCommit, GetEvents, QueryResponse};
 use crate::config::cfg::ChainConfig;
 use crate::prelude::{ClientAbciQuery, ClientTxAsync};
 use cosmrs::proto::cosmwasm::wasm::v1::{
-    QuerySmartContractStateRequest, QuerySmartContractStateResponse, QueryRawContractStateRequest, QueryRawContractStateResponse,
+    QueryRawContractStateRequest, QueryRawContractStateResponse, QuerySmartContractStateRequest,
+    QuerySmartContractStateResponse,
 };
 
 use crate::modules::auth::model::Address;
-use crate::signing_key::key::SigningKey;
+use crate::signing_key::key::UserKey;
 
 use super::model::{
     ExecRequest, InstantiateBatchResponse, InstantiateRequest, MigrateRequest,
@@ -29,7 +30,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         req: StoreCodeRequest,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<StoreCodeResponse<<Self as ClientTxCommit>::Response>, CosmwasmError> {
         let mut res = self
@@ -46,7 +47,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         reqs: I,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<StoreCodeBatchResponse<<Self as ClientTxCommit>::Response>, CosmwasmError>
     where
@@ -75,9 +76,12 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
 
         #[cfg(feature = "injective")]
         let code_ids = res
-            .find_event_tags("cosmwasm.wasm.v1.EventCodeStored".to_string(), "code_id".to_string())
+            .find_event_tags(
+                "cosmwasm.wasm.v1.EventCodeStored".to_string(),
+                "code_id".to_string(),
+            )
             .into_iter()
-            .map(|x| {x.value.replace('\"',"").parse::<u64>()})
+            .map(|x| x.value.replace('\"', "").parse::<u64>())
             .collect::<Result<Vec<_>, _>>()
             .map_err(|_| CosmwasmError::MissingEvent)?;
 
@@ -90,7 +94,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         req: InstantiateRequest<S>,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<InstantiateResponse<<Self as ClientTxCommit>::Response>, CosmwasmError>
     where
@@ -110,7 +114,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         reqs: I,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<InstantiateBatchResponse<<Self as ClientTxCommit>::Response>, CosmwasmError>
     where
@@ -140,9 +144,12 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
 
         #[cfg(feature = "injective")]
         let addrs = res
-            .find_event_tags("cosmwasm.wasm.v1.EventContractInstantiated".to_string(), "contract_address".to_string())
+            .find_event_tags(
+                "cosmwasm.wasm.v1.EventContractInstantiated".to_string(),
+                "contract_address".to_string(),
+            )
             .into_iter()
-            .map(|x| {x.value.replace('\"',"").parse()})
+            .map(|x| x.value.replace('\"', "").parse())
             .collect::<Result<Vec<_>, _>>()
             .map_err(|_| CosmwasmError::MissingEvent)?;
 
@@ -156,7 +163,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         req: ExecRequest<S>,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxCommit>::Response, CosmwasmError>
     where
@@ -170,7 +177,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         reqs: I,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxCommit>::Response, CosmwasmError>
     where
@@ -197,7 +204,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         req: MigrateRequest<S>,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxCommit>::Response, CosmwasmError>
     where
@@ -211,7 +218,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         reqs: I,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxCommit>::Response, CosmwasmError>
     where
@@ -243,7 +250,7 @@ pub trait CosmwasmTxAsync: ClientTxAsync + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         req: ExecRequest<S>,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxAsync>::Response, CosmwasmError>
     where
@@ -257,7 +264,7 @@ pub trait CosmwasmTxAsync: ClientTxAsync + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         reqs: I,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxAsync>::Response, CosmwasmError>
     where
@@ -290,7 +297,10 @@ pub trait CosmwasmQuery: ClientAbciQuery {
         address: Address,
         msg: &S,
         height: Option<u32>,
-    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QuerySmartContractStateResponse>, CosmwasmError> {
+    ) -> Result<
+        QueryResponse<<Self as ClientAbciQuery>::Response, QuerySmartContractStateResponse>,
+        CosmwasmError,
+    > {
         let payload = serde_json::to_vec(msg).map_err(CosmwasmError::json)?;
 
         let req = QuerySmartContractStateRequest {
@@ -302,7 +312,7 @@ pub trait CosmwasmQuery: ClientAbciQuery {
             .query::<_, QuerySmartContractStateResponse>(
                 req,
                 "/cosmwasm.wasm.v1.Query/SmartContractState",
-                height
+                height,
             )
             .await?;
 
@@ -314,18 +324,20 @@ pub trait CosmwasmQuery: ClientAbciQuery {
         address: Address,
         payload: Vec<u8>,
         height: Option<u32>,
-    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QueryRawContractStateResponse>, CosmwasmError> {
-
+    ) -> Result<
+        QueryResponse<<Self as ClientAbciQuery>::Response, QueryRawContractStateResponse>,
+        CosmwasmError,
+    > {
         let req = QueryRawContractStateRequest {
             address: address.into(),
             query_data: payload,
         };
-        
+
         let res = self
             .query::<_, QueryRawContractStateResponse>(
                 req,
                 "/cosmwasm.wasm.v1.Query/RawContractState",
-                height
+                height,
             )
             .await?;
 

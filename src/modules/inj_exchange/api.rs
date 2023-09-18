@@ -1,11 +1,15 @@
 use async_trait::async_trait;
-use injective_std::types::injective::exchange::v1beta1::{MsgCreateSpotLimitOrder, MsgBatchCreateSpotLimitOrders, MsgBatchUpdateOrders, QuerySpotMarketsRequest, QuerySpotMarketsResponse, QuerySpotMarketResponse, QuerySpotMarketRequest};
+use injective_std::types::injective::exchange::v1beta1::{
+    MsgBatchCreateSpotLimitOrders, MsgBatchUpdateOrders, MsgCreateSpotLimitOrder,
+    QuerySpotMarketRequest, QuerySpotMarketResponse, QuerySpotMarketsRequest,
+    QuerySpotMarketsResponse,
+};
 
 use crate::{
     chain::request::TxOptions,
     clients::client::{ClientAbciQuery, ClientTxCommit, QueryResponse},
     config::cfg::ChainConfig,
-    signing_key::key::SigningKey,
+    signing_key::key::UserKey,
 };
 
 use super::error::ExchangeError;
@@ -19,18 +23,34 @@ pub trait ExchangeQuery: ClientAbciQuery + Sized {
         &self,
         req: QuerySpotMarketsRequest,
         height: Option<u32>,
-    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QuerySpotMarketsResponse>, ExchangeError> {
-
-        Ok(self.query::<_, QuerySpotMarketsResponse>(req, "/injective.exchange.v1beta1.Query/SpotMarkets", height).await?)
+    ) -> Result<
+        QueryResponse<<Self as ClientAbciQuery>::Response, QuerySpotMarketsResponse>,
+        ExchangeError,
+    > {
+        Ok(self
+            .query::<_, QuerySpotMarketsResponse>(
+                req,
+                "/injective.exchange.v1beta1.Query/SpotMarkets",
+                height,
+            )
+            .await?)
     }
 
     async fn exchange_query_spot_market(
         &self,
         req: QuerySpotMarketRequest,
         height: Option<u32>,
-    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, QuerySpotMarketResponse>, ExchangeError> {
-
-        Ok(self.query::<_, QuerySpotMarketResponse>(req, "/injective.exchange.v1beta1.Query/SpotMarket", height).await?)
+    ) -> Result<
+        QueryResponse<<Self as ClientAbciQuery>::Response, QuerySpotMarketResponse>,
+        ExchangeError,
+    > {
+        Ok(self
+            .query::<_, QuerySpotMarketResponse>(
+                req,
+                "/injective.exchange.v1beta1.Query/SpotMarket",
+                height,
+            )
+            .await?)
     }
 }
 
@@ -42,10 +62,9 @@ pub trait ExchangeTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         req: MsgBatchUpdateOrders,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
-    ) -> Result<<Self as ClientTxCommit>::Response, ExchangeError>
-    {
+    ) -> Result<<Self as ClientTxCommit>::Response, ExchangeError> {
         let tx_raw = self.tx_sign(chain_cfg, vec![req], key, tx_options).await?;
 
         Ok(self.broadcast_tx_commit(&tx_raw).await?)
@@ -55,10 +74,9 @@ pub trait ExchangeTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         req: MsgCreateSpotLimitOrder,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
-    ) -> Result<<Self as ClientTxCommit>::Response, ExchangeError>
-    {
+    ) -> Result<<Self as ClientTxCommit>::Response, ExchangeError> {
         let tx_raw = self.tx_sign(chain_cfg, vec![req], key, tx_options).await?;
 
         Ok(self.broadcast_tx_commit(&tx_raw).await?)
@@ -68,10 +86,9 @@ pub trait ExchangeTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         req: MsgBatchCreateSpotLimitOrders,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
-    ) -> Result<<Self as ClientTxCommit>::Response, ExchangeError>
-    {
+    ) -> Result<<Self as ClientTxCommit>::Response, ExchangeError> {
         let tx_raw = self.tx_sign(chain_cfg, vec![req], key, tx_options).await?;
 
         Ok(self.broadcast_tx_commit(&tx_raw).await?)

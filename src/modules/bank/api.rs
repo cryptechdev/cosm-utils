@@ -9,13 +9,15 @@ use cosmrs::proto::cosmos::bank::v1beta1::{
 
 use crate::{
     chain::{
-        coin::{Denom, Coin},
+        coin::{Coin, Denom},
         request::{PaginationRequest, TxOptions},
     },
-    clients::client::{ClientAbciQuery, ClientTxAsync, ClientTxCommit, ClientTxSync, QueryResponse},
+    clients::client::{
+        ClientAbciQuery, ClientTxAsync, ClientTxCommit, ClientTxSync, QueryResponse,
+    },
     config::cfg::ChainConfig,
     modules::auth::model::Address,
-    signing_key::key::SigningKey,
+    signing_key::key::UserKey,
 };
 
 use super::{
@@ -36,7 +38,8 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         address: Address,
         denom: Denom,
         height: Option<u32>,
-    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalanceResponse>, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalanceResponse>, BankError>
+    {
         let req = QueryBalanceRequest {
             address: address.into(),
             denom: denom.into(),
@@ -62,14 +65,19 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         address: Address,
         pagination: Option<PaginationRequest>,
         height: Option<u32>,
-    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalancesResponse>, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalancesResponse>, BankError>
+    {
         let req = QueryAllBalancesRequest {
             address: address.into(),
             pagination: pagination.map(Into::into),
         };
 
         let res = self
-            .query::<_, QueryAllBalancesResponse>(req, "/cosmos.bank.v1beta1.Query/AllBalances", height)
+            .query::<_, QueryAllBalancesResponse>(
+                req,
+                "/cosmos.bank.v1beta1.Query/AllBalances",
+                height,
+            )
             .await?;
 
         res.try_map(|x| {
@@ -78,7 +86,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<_>, _>>()?;
-    
+
             Ok(BalancesResponse {
                 balances,
                 next: x.pagination.map(Into::into),
@@ -92,7 +100,8 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         address: Address,
         pagination: Option<PaginationRequest>,
         height: Option<u32>,
-    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalancesResponse>, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalancesResponse>, BankError>
+    {
         let req = QuerySpendableBalancesRequest {
             address: address.into(),
             pagination: pagination.map(Into::into),
@@ -102,16 +111,16 @@ pub trait BankQuery: ClientAbciQuery + Sized {
             .query::<_, QuerySpendableBalancesResponse>(
                 req,
                 "/cosmos.bank.v1beta1.Query/SpendableBalances",
-                height
+                height,
             )
             .await?;
 
         res.try_map(|x| {
             let balances = x
-            .balances
-            .into_iter()
-            .map(TryInto::try_into)
-            .collect::<Result<Vec<_>, _>>()?;
+                .balances
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?;
 
             Ok(BalancesResponse {
                 balances,
@@ -122,10 +131,11 @@ pub trait BankQuery: ClientAbciQuery + Sized {
 
     /// Query global supply of `denom` for all accounts
     async fn bank_query_supply(
-        &self, 
+        &self,
         denom: Denom,
         height: Option<u32>,
-    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalanceResponse>, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalanceResponse>, BankError>
+    {
         let req = QuerySupplyOfRequest {
             denom: denom.into(),
         };
@@ -146,21 +156,26 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         &self,
         pagination: Option<PaginationRequest>,
         height: Option<u32>,
-    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalancesResponse>, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, BalancesResponse>, BankError>
+    {
         let req = QueryTotalSupplyRequest {
             pagination: pagination.map(Into::into),
         };
 
         let res = self
-            .query::<_, QueryTotalSupplyResponse>(req, "/cosmos.bank.v1beta1.Query/TotalSupply", height)
+            .query::<_, QueryTotalSupplyResponse>(
+                req,
+                "/cosmos.bank.v1beta1.Query/TotalSupply",
+                height,
+            )
             .await?;
 
         res.try_map(|x| {
             let balances = x
-            .supply
-            .into_iter()
-            .map(TryInto::try_into)
-            .collect::<Result<Vec<_>, _>>()?;
+                .supply
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?;
 
             Ok(BalancesResponse {
                 balances,
@@ -174,13 +189,18 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         &self,
         denom: Denom,
         height: Option<u32>,
-    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, DenomMetadataResponse>, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, DenomMetadataResponse>, BankError>
+    {
         let req = QueryDenomMetadataRequest {
             denom: denom.into(),
         };
 
         let res = self
-            .query::<_, QueryDenomMetadataResponse>(req, "/cosmos.bank.v1beta1.Query/DenomMetadata", height)
+            .query::<_, QueryDenomMetadataResponse>(
+                req,
+                "/cosmos.bank.v1beta1.Query/DenomMetadata",
+                height,
+            )
             .await?;
 
         res.try_map(|x| {
@@ -195,7 +215,8 @@ pub trait BankQuery: ClientAbciQuery + Sized {
         &self,
         pagination: Option<PaginationRequest>,
         height: Option<u32>,
-    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, DenomsMetadataResponse>, BankError> {
+    ) -> Result<QueryResponse<<Self as ClientAbciQuery>::Response, DenomsMetadataResponse>, BankError>
+    {
         let req = QueryDenomsMetadataRequest {
             pagination: pagination.map(Into::into),
         };
@@ -204,7 +225,7 @@ pub trait BankQuery: ClientAbciQuery + Sized {
             .query::<_, QueryDenomsMetadataResponse>(
                 req,
                 "/cosmos.bank.v1beta1.Query/DenomsMetadata",
-                height
+                height,
             )
             .await?;
 
@@ -248,7 +269,7 @@ pub trait BankTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         req: SendRequest,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxCommit>::Response, BankError> {
         self.bank_send_batch_commit(chain_cfg, vec![req], key, tx_options)
@@ -259,7 +280,7 @@ pub trait BankTxCommit: ClientTxCommit + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         reqs: I,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxCommit>::Response, BankError>
     where
@@ -285,7 +306,7 @@ pub trait BankTxSync: ClientTxSync + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         req: SendRequest,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxSync>::Response, BankError> {
         self.bank_send_batch_sync(chain_cfg, vec![req], key, tx_options)
@@ -296,7 +317,7 @@ pub trait BankTxSync: ClientTxSync + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         reqs: I,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxSync>::Response, BankError>
     where
@@ -322,7 +343,7 @@ pub trait BankTxAsync: ClientTxAsync + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         req: SendRequest,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxAsync>::Response, BankError> {
         self.bank_send_batch_async(chain_cfg, vec![req], key, tx_options)
@@ -333,7 +354,7 @@ pub trait BankTxAsync: ClientTxAsync + ClientAbciQuery {
         &self,
         chain_cfg: &ChainConfig,
         reqs: I,
-        key: &SigningKey,
+        key: &UserKey,
         tx_options: &TxOptions,
     ) -> Result<<Self as ClientTxAsync>::Response, BankError>
     where
@@ -371,7 +392,7 @@ mod tests {
         clients::client::CosmTome,
         config::cfg::ChainConfig,
         modules::bank::{error::BankError, model::SendRequest},
-        signing_key::key::SigningKey,
+        signing_key::key::UserKey,
     };
 
     #[tokio::test]
@@ -388,7 +409,7 @@ mod tests {
         };
 
         let tx_options = TxOptions::default();
-        let key = SigningKey::random_mnemonic("test_key".to_string(), cfg.derivation_path.clone());
+        let key = UserKey::random_mnemonic("test_key".to_string(), cfg.derivation_path.clone());
 
         let mut mock_client = MockCosmosClient::new();
 
@@ -483,7 +504,7 @@ mod tests {
             gas_adjustment: 1.5,
         };
         let tx_options = TxOptions::default();
-        let key = SigningKey::random_mnemonic("test_key".to_string(), cfg.derivation_path.clone());
+        let key = UserKey::random_mnemonic("test_key".to_string(), cfg.derivation_path.clone());
 
         let mut mock_client = MockCosmosClient::new();
 
@@ -584,7 +605,7 @@ mod tests {
         };
 
         let tx_options = TxOptions::default();
-        let key = SigningKey::random_mnemonic("test_key".to_string(), cfg.derivation_path.clone());
+        let key = UserKey::random_mnemonic("test_key".to_string(), cfg.derivation_path.clone());
 
         let mut mock_client = MockCosmosClient::new();
 
