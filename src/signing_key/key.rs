@@ -4,6 +4,7 @@ use cosmrs::crypto::{secp256k1, PublicKey};
 use cosmrs::tendermint::block::Height;
 use cosmrs::tx::{Body, SignDoc, SignerInfo};
 
+use ethers_signers::Signer;
 #[cfg(feature = "keyring")]
 use keyring::Entry;
 use schemars::JsonSchema;
@@ -24,11 +25,12 @@ pub struct UserKey {
 }
 
 impl UserKey {
+    #[cfg(not(feature = "injective"))]
     pub async fn public_key(&self, derivation_path: &str) -> Result<PublicKey, ChainError> {
         match &self.key {
             Key::Raw(bytes) => {
                 let key = raw_bytes_to_signing_key(bytes)?;
-                Ok(key.public_key())
+                Ok(key.signer().public_key())
             }
 
             Key::Mnemonic(phrase) => {
@@ -45,7 +47,34 @@ impl UserKey {
         }
     }
 
+    #[cfg(feature = "injective")]
+    pub async fn verifying_key(
+        &self,
+        derivation_path: &str,
+    ) -> Result<ecdsa::VerifyingKey<bip32::secp256k1::Secp256k1>, ChainError> {
+        println!("verifying key");
+        match &self.key {
+            Key::Raw(bytes) => {
+                let key = raw_bytes_to_signing_key(bytes)?;
+                Ok(key.signer().verifying_key().clone())
+            }
+
+            Key::Mnemonic(phrase) => {
+                let key = mnemonic_to_signing_key(phrase, derivation_path)?;
+                Ok(key.signer().verifying_key().clone())
+            }
+
+            #[cfg(feature = "keyring")]
+            Key::Keyring(params) => {
+                let entry = Entry::new(&self.name, &params.user)?;
+                let key = mnemonic_to_signing_key(&entry.get_password()?, derivation_path)?;
+                Ok(key.signer().verifying_key().clone())
+            }
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
+    #[cfg(not(feature = "injective"))]
     pub async fn sign(
         &self,
         msgs: Vec<impl IntoAny>,
@@ -62,62 +91,85 @@ impl UserKey {
             account.pubkey
         };
 
+        let sign_doc = build_sign_doc(
+            msgs,
+            timeout_height,
+            memo,
+            &account,
+            fee,
+            public_key,
+            chain_id,
+        )?;
+
         match &self.key {
             Key::Raw(bytes) => {
-                let sign_doc = build_sign_doc(
-                    msgs,
-                    timeout_height,
-                    memo,
-                    &account,
-                    fee,
-                    public_key,
-                    chain_id,
-                )?;
-
                 let key = raw_bytes_to_signing_key(bytes)?;
-
                 let raw = sign_doc.sign(&key).map_err(ChainError::crypto)?;
                 Ok(raw.into())
             }
 
             Key::Mnemonic(phrase) => {
-                let sign_doc = build_sign_doc(
-                    msgs,
-                    timeout_height,
-                    memo,
-                    &account,
-                    fee,
-                    public_key,
-                    chain_id,
-                )?;
-
                 let key = mnemonic_to_signing_key(phrase, derivation_path)?;
-
                 let raw = sign_doc.sign(&key).map_err(ChainError::crypto)?;
                 Ok(raw.into())
             }
 
             #[cfg(feature = "keyring")]
             Key::Keyring(params) => {
-                let sign_doc = build_sign_doc(
-                    msgs,
-                    timeout_height,
-                    memo,
-                    &account,
-                    fee,
-                    public_key,
-                    chain_id,
-                )?;
-
                 let entry = Entry::new(&self.name, &params.user)?;
                 let key = mnemonic_to_signing_key(&entry.get_password()?, derivation_path)?;
-
                 let raw = sign_doc.sign(&key).map_err(ChainError::crypto)?;
                 Ok(raw.into())
             }
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
+    #[cfg(feature = "injective")]
+    pub async fn sign(
+        &self,
+        msgs: Vec<impl IntoAny>,
+        timeout_height: u64,
+        memo: &str,
+        account: Account,
+        fee: Fee,
+        chain_id: &str,
+        derivation_path: &str,
+    ) -> Result<RawTx, ChainError> {
+        // let public_key = if account.pubkey.is_none() {
+        //     Some(self.public_key(derivation_path).await?)
+        // } else {
+        //     account.pubkey
+        // };
+
+        println!("before build");
+        let sign_doc = build_sign_doc(msgs, timeout_height, memo, &account, fee, None, chain_id)?;
+
+        println!("after build");
+        match &self.key {
+            Key::Raw(bytes) => {
+                let key = raw_bytes_to_signing_key(bytes)?;
+                let raw = sign_doc_sign(sign_doc, key).await;
+                Ok(raw.into())
+            }
+
+            Key::Mnemonic(phrase) => {
+                let key = mnemonic_to_signing_key(phrase, derivation_path)?;
+                let raw = sign_doc_sign(sign_doc, key).await;
+                Ok(raw.into())
+            }
+
+            #[cfg(feature = "keyring")]
+            Key::Keyring(params) => {
+                let entry = Entry::new(&self.name, &params.user)?;
+                let key = mnemonic_to_signing_key(&entry.get_password()?, derivation_path)?;
+                let raw = sign_doc_sign(sign_doc, key).await;
+                Ok(raw.into())
+            }
+        }
+    }
+
+    #[cfg(not(feature = "injective"))]
     pub async fn to_addr(
         &self,
         prefix: &str,
@@ -131,6 +183,38 @@ impl UserKey {
         Ok(account.into())
     }
 
+    #[cfg(feature = "injective")]
+    pub async fn to_addr(
+        &self,
+        prefix: &str,
+        derivation_path: &str,
+    ) -> Result<Address, ChainError> {
+        use std::str::FromStr;
+
+        use bech32::ToBase32;
+        use ethers_signers::{Signer, Wallet};
+
+        println!("to addr");
+        let wallet = match &self.key {
+            Key::Raw(bytes) => raw_bytes_to_signing_key(&bytes)?,
+            Key::Mnemonic(mnemonic) => mnemonic_to_signing_key(&mnemonic, derivation_path)?,
+            #[cfg(feature = "keyring")]
+            Key::Keyring(params) => {
+                let entry = Entry::new(&self.name, &params.user)?;
+                mnemonic_to_signing_key(&entry.get_password()?, derivation_path)?
+            }
+        };
+
+        let inj_addr = bech32::encode(
+            "inj",
+            wallet.address().as_bytes().to_base32(),
+            bech32::Variant::Bech32,
+        )
+        .unwrap();
+
+        Ok(Address::from_str(&inj_addr).unwrap())
+    }
+
     pub fn random_mnemonic(key_name: String) -> UserKey {
         let mnemonic = bip32::Mnemonic::random(OsRng, Default::default());
 
@@ -139,6 +223,24 @@ impl UserKey {
             key: Key::Mnemonic(mnemonic.phrase().to_string()),
         }
     }
+}
+
+#[cfg(feature = "injective")]
+pub async fn sign_doc_sign(
+    sign_doc: SignDoc,
+    signing_key: ethers_signers::Wallet<ecdsa::SigningKey<bip32::secp256k1::Secp256k1>>,
+) -> cosmrs::tx::Raw {
+    // TODO(tarcieri): optimize away `Clone` calls with reference conversions
+    println!("sign doc sign");
+    let sign_doc_bytes = sign_doc.clone().into_bytes().unwrap();
+    let signature = signing_key.sign_message(&sign_doc_bytes).await.unwrap();
+
+    cosmrs::proto::cosmos::tx::v1beta1::TxRaw {
+        body_bytes: sign_doc.body_bytes,
+        auth_info_bytes: sign_doc.auth_info_bytes,
+        signatures: vec![signature.to_vec()],
+    }
+    .into()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -188,22 +290,31 @@ fn mnemonic_to_signing_key(
 #[cfg(feature = "injective")]
 fn mnemonic_to_signing_key(
     mnemonic: &str,
-    _derivation_path: &str,
-) -> Result<secp256k1::SigningKey, ChainError> {
+    derivation_path: &str,
+) -> Result<ethers_signers::Wallet<ecdsa::SigningKey<bip32::secp256k1::Secp256k1>>, ChainError> {
+    println!("mnemonic to signing key");
     use ethers_signers::{coins_bip39::English, MnemonicBuilder};
-
     let wallet = MnemonicBuilder::<English>::default()
         .phrase(mnemonic)
         .index(0u32)
         .unwrap()
         .build()
         .unwrap();
-    let bytes = wallet.signer().clone().to_bytes();
-    Ok(secp256k1::SigningKey::from_slice(&bytes).unwrap())
+    Ok(wallet)
 }
 
+#[cfg(not(feature = "injective"))]
 fn raw_bytes_to_signing_key(bytes: &[u8]) -> Result<secp256k1::SigningKey, ChainError> {
     secp256k1::SigningKey::from_slice(bytes).map_err(ChainError::crypto)
+}
+
+#[cfg(feature = "injective")]
+fn raw_bytes_to_signing_key(
+    bytes: &[u8],
+) -> Result<ethers_signers::Wallet<ecdsa::SigningKey<bip32::secp256k1::Secp256k1>>, ChainError> {
+    use ethers_signers::Wallet;
+
+    Ok(Wallet::from_bytes(bytes).unwrap())
 }
 
 fn build_sign_doc(
@@ -215,6 +326,7 @@ fn build_sign_doc(
     public_key: Option<PublicKey>,
     chain_id: &str,
 ) -> Result<SignDoc, ChainError> {
+    println!("build sign doc");
     let timeout: Height = timeout_height.try_into()?;
 
     let tx = Body::new(
@@ -228,9 +340,16 @@ fn build_sign_doc(
         timeout,
     );
 
-    // NOTE: if we are making requests in parallel with the same key, we need to serialize `account.sequence` to avoid errors
+    //  NOTE: if we are making requests in parallel with the same key, we need to serialize `account.sequence` to avoid errors
+    println!("before single");
     let auth_info =
         SignerInfo::single_direct(public_key, account.sequence).auth_info(fee.try_into()?);
+    println!("afer single");
+    // let auth_info = SignerInfo {
+    //     public_key: None,
+    //     mode_info: todo!(),
+    //     sequence: todo!(),
+    // };
 
     SignDoc::new(
         &tx,
@@ -252,10 +371,9 @@ mod tests {
     use crate::signing_key::key::{Key, UserKey};
 
     /// Attempt at getting injective key generation to work
-    #[ignore]
     #[tokio::test]
     async fn mnemonic_deterministic() {
-        let mnemonic = "cryptech dev key"; // for this test, the  Cryptech Dev Wallet was used
+        let mnemonic = "device relax sibling follow seminar bless admit ticket attract other cabin tackle crumble venture bunker prosper wise monster patrol wrestle royal latin effort pilot"; // for this test, the  Cryptech Dev Wallet was used
         let addr = "inj1rmxnw6nmqqsnsk0d4c72v9794zfkgxkx23fart"; // address taken from injective and keplr
         let index = 0u32;
 
@@ -266,7 +384,7 @@ mod tests {
             key: Key::Mnemonic(mnemonic.to_string()),
         };
 
-        let inj_addr = user_key.to_addr("inj", "test").await.unwrap();
+        let inj_addr = user_key.to_addr("inj", "m/44'/60'/0'/0/0").await.unwrap();
 
         assert_eq!(inj_addr.as_ref(), addr);
 

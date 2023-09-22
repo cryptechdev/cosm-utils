@@ -74,6 +74,7 @@ pub enum ChainError {
 
 impl ChainError {
     pub(crate) fn crypto(e: ErrorReport) -> ChainError {
+        panic!();
         ChainError::Crypto {
             message: e.to_string(),
         }

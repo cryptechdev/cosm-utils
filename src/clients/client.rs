@@ -289,6 +289,8 @@ pub trait ClientAbciQuery: Sized {
             self.auth_query_account(sender_addr).await?.account
         };
 
+        println!("here 1");
+
         let fee = if let Some(fee) = &tx_options.fee {
             fee.clone()
         } else {
@@ -307,6 +309,7 @@ pub trait ClientAbciQuery: Sized {
             .await?
         };
 
+        println!("here 2");
         let raw = key
             .sign(
                 msgs,
@@ -318,6 +321,7 @@ pub trait ClientAbciQuery: Sized {
                 &chain_cfg.derivation_path,
             )
             .await?;
+        println!("here 3");
         Ok(raw)
     }
 }
