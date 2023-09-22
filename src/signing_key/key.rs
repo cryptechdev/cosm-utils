@@ -364,17 +364,37 @@ fn build_sign_doc(
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use bech32::{self, ToBase32};
     use cosmrs::AccountId;
     use ethers::signers::{coins_bip39::English, MnemonicBuilder, Signer};
+    use tendermint_rpc::HttpClient;
 
-    use crate::signing_key::key::{Key, UserKey};
+    use crate::{
+        chain::{
+            coin::{Coin, Denom},
+            request::TxOptions,
+        },
+        config::cfg::ChainConfig,
+        modules::{auth::model::Address, bank::model::SendRequest},
+        prelude::BankTxCommit,
+        signing_key::key::{Key, UserKey},
+    };
 
     /// Attempt at getting injective key generation to work
     #[tokio::test]
     async fn mnemonic_deterministic() {
         let mnemonic = "device relax sibling follow seminar bless admit ticket attract other cabin tackle crumble venture bunker prosper wise monster patrol wrestle royal latin effort pilot"; // for this test, the  Cryptech Dev Wallet was used
         let addr = "inj1rmxnw6nmqqsnsk0d4c72v9794zfkgxkx23fart"; // address taken from injective and keplr
+        let config = ChainConfig {
+            denom: "inj".into(),
+            prefix: "inj".into(),
+            chain_id: "injective-1".into(),
+            derivation_path: "m/44'/60'/0'/0/0".into(),
+            gas_price: 500000000.0,
+            gas_adjustment: 1.3,
+        };
         let index = 0u32;
 
         println!("confirmed injective address from keplr: {}", addr);
@@ -409,5 +429,42 @@ mod tests {
 
         println!("account address: {}", account);
         assert_eq!(addr, account.to_string());
+    }
+    #[tokio::test]
+    async fn test_injective_signing() {
+        let mnemonic = "device relax sibling follow seminar bless admit ticket attract other cabin tackle crumble venture bunker prosper wise monster patrol wrestle royal latin effort pilot"; // for this test, the  Cryptech Dev Wallet was used
+        let addr = "inj1rmxnw6nmqqsnsk0d4c72v9794zfkgxkx23fart"; // address taken from injective and keplr
+        let chain_cfg = ChainConfig {
+            denom: "inj".into(),
+            prefix: "inj".into(),
+            chain_id: "injective-888".into(),
+            derivation_path: "m/44'/60'/0'/0/0".into(),
+            gas_price: 700000000.0,
+            gas_adjustment: 1.3,
+        };
+        let rpc_endpoint = "https://injective-testnet-rpc.polkachu.com:443".to_string();
+        let key = UserKey {
+            name: "test".to_string(),
+            key: Key::Mnemonic(mnemonic.to_string()),
+        };
+        let client = HttpClient::new(rpc_endpoint.as_str()).unwrap();
+        let req = SendRequest {
+            from: Address::from_str(addr).unwrap(),
+            to: Address::from_str(addr).unwrap(),
+            amounts: vec![Coin {
+                denom: Denom::from_str("inj").unwrap(),
+                amount: 3,
+            }],
+        };
+        let tx_options = TxOptions {
+            timeout_height: None,
+            fee: None,
+            account: None,
+            memo: "test".to_string(),
+        };
+        let _ = client
+            .bank_send_commit(&chain_cfg, req, &key, &tx_options)
+            .await
+            .unwrap();
     }
 }

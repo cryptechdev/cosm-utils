@@ -91,12 +91,14 @@ impl TryFrom<BaseAccount> for Account {
     fn try_from(proto: BaseAccount) -> Result<Self, Self::Error> {
         Ok(Account {
             address: proto.address.parse()?,
-            pubkey: proto
-                .pub_key
-                .map(Into::<cosmrs::Any>::into)
-                .map(PublicKey::try_from)
-                .transpose()
-                .map_err(ChainError::crypto)?,
+            // TODO
+            // pubkey: proto
+            //     .pub_key
+            //     .map(Into::<cosmrs::Any>::into)
+            //     .map(PublicKey::try_from)
+            //     .transpose()
+            //     .map_err(ChainError::crypto)?,
+            pubkey: None,
             account_number: proto.account_number,
             sequence: proto.sequence,
         })
