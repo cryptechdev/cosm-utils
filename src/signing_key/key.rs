@@ -3,8 +3,9 @@ use cosmrs::bip32::secp256k1::elliptic_curve::rand_core::OsRng;
 use cosmrs::crypto::{secp256k1, PublicKey};
 use cosmrs::tendermint::block::Height;
 use cosmrs::tx::{Body, SignDoc, SignerInfo};
+use signature::Signer;
 
-use ethers_signers::Signer;
+use ethers_signers::Signer as TestSigner;
 #[cfg(feature = "keyring")]
 use keyring::Entry;
 use schemars::JsonSchema;
@@ -230,17 +231,34 @@ pub async fn sign_doc_sign(
     sign_doc: SignDoc,
     signing_key: ethers_signers::Wallet<ecdsa::SigningKey<bip32::secp256k1::Secp256k1>>,
 ) -> cosmrs::tx::Raw {
-    // TODO(tarcieri): optimize away `Clone` calls with reference conversions
     println!("sign doc sign");
     let sign_doc_bytes = sign_doc.clone().into_bytes().unwrap();
-    let signature = signing_key.sign_message(&sign_doc_bytes).await.unwrap();
 
-    cosmrs::proto::cosmos::tx::v1beta1::TxRaw {
-        body_bytes: sign_doc.body_bytes,
-        auth_info_bytes: sign_doc.auth_info_bytes,
-        signatures: vec![signature.to_vec()],
-    }
-    .into()
+    // This doesn't work
+    // let signature = signing_key.sign_message(&sign_doc_bytes).await.unwrap();
+
+    // Neither does this
+    // let signature = signing_key
+    //     .signer()
+    //     .sign_recoverable(&sign_doc_bytes)
+    //     .unwrap();
+
+    let signer = signing_key.signer().clone();
+
+    // let signature: ecdsa::Signature<bip32::secp256k1::Secp256k1> =
+    //     signer.try_sign(&sign_doc_bytes).unwrap();
+
+    let cosmos_signer = secp256k1::SigningKey::new(Box::new(signer));
+
+    sign_doc.sign(&cosmos_signer).unwrap().into()
+    // let signature = sign_doc;
+
+    // cosmrs::proto::cosmos::tx::v1beta1::TxRaw {
+    //     body_bytes: sign_doc.body_bytes,
+    //     auth_info_bytes: sign_doc.auth_info_bytes,
+    //     signatures: vec![signature.to_vec()],
+    // }
+    // .into()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -342,6 +360,7 @@ fn build_sign_doc(
 
     //  NOTE: if we are making requests in parallel with the same key, we need to serialize `account.sequence` to avoid errors
     println!("before single");
+    println!("public key: {public_key:?}");
     let auth_info =
         SignerInfo::single_direct(public_key, account.sequence).auth_info(fee.try_into()?);
     println!("afer single");
@@ -384,52 +403,20 @@ mod tests {
 
     /// Attempt at getting injective key generation to work
     #[tokio::test]
-    async fn mnemonic_deterministic() {
+    async fn test_injective_addr() {
         let mnemonic = "device relax sibling follow seminar bless admit ticket attract other cabin tackle crumble venture bunker prosper wise monster patrol wrestle royal latin effort pilot"; // for this test, the  Cryptech Dev Wallet was used
         let addr = "inj1rmxnw6nmqqsnsk0d4c72v9794zfkgxkx23fart"; // address taken from injective and keplr
-        let config = ChainConfig {
-            denom: "inj".into(),
-            prefix: "inj".into(),
-            chain_id: "injective-1".into(),
-            derivation_path: "m/44'/60'/0'/0/0".into(),
-            gas_price: 500000000.0,
-            gas_adjustment: 1.3,
-        };
-        let index = 0u32;
-
-        println!("confirmed injective address from keplr: {}", addr);
-
         let user_key = UserKey {
             name: "test".to_string(),
             key: Key::Mnemonic(mnemonic.to_string()),
         };
+        let computed_addr = user_key.to_addr("inj", "m/44'/60'/0'/0/0").await.unwrap();
 
-        let inj_addr = user_key.to_addr("inj", "m/44'/60'/0'/0/0").await.unwrap();
-
-        assert_eq!(inj_addr.as_ref(), addr);
-
-        let wallet = MnemonicBuilder::<English>::default()
-            .phrase(mnemonic)
-            .index(index)
-            .unwrap()
-            .build()
-            .unwrap();
-
-        let inj_addr = bech32::encode(
-            "inj",
-            wallet.address().as_bytes().to_base32(),
-            bech32::Variant::Bech32,
-        )
-        .unwrap();
-
-        println!("inj_addr: {}", inj_addr);
-        assert_eq!(addr, inj_addr.to_string());
-
-        let account = AccountId::new("inj", wallet.address().as_bytes()).unwrap();
-
-        println!("account address: {}", account);
-        assert_eq!(addr, account.to_string());
+        println!("computed addr: {}", computed_addr);
+        println!("confirmed injective address from keplr: {}", addr);
+        assert_eq!(computed_addr.as_ref(), addr);
     }
+
     #[tokio::test]
     async fn test_injective_signing() {
         let mnemonic = "device relax sibling follow seminar bless admit ticket attract other cabin tackle crumble venture bunker prosper wise monster patrol wrestle royal latin effort pilot"; // for this test, the  Cryptech Dev Wallet was used
@@ -453,7 +440,7 @@ mod tests {
             to: Address::from_str(addr).unwrap(),
             amounts: vec![Coin {
                 denom: Denom::from_str("inj").unwrap(),
-                amount: 3,
+                amount: 1,
             }],
         };
         let tx_options = TxOptions {
