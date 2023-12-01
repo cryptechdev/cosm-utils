@@ -2,10 +2,7 @@
 name = "cosm-utils"
 version = "0.1.2"
 edition = "2021"
-authors = [
-    "Eric Woolsey <ewoolsey@ualberta.ca>",
-    "Harry Hull <harry.hull1@gmail.com>",
-]
+authors = ["Eric Woolsey <ewoolsey@ualberta.ca>"]
 
 readme = "README.md"
 description = "Simple utility traits and functions for tendermint_rpc and cosmrs"
@@ -38,8 +35,8 @@ mockall = { version = "0.11.2", optional = true }
 # Optional dependencies for injective
 injective-std = { git = "https://github.com/cryptechdev/cw-injective.git", branch = "eric/dev", optional = true }
 ecdsa = "0.16"
-ethers-signers = { version = "2", optional = true }
-ethers = "2.0.9"
+ethers-signers = { version = "=2.0.11", optional = true }
+ethers = "=2.0.11"
 bech32 = "0.9.1"
 
 [dev-dependencies]

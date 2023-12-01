@@ -1,8 +1,10 @@
 use async_trait::async_trait;
 use injective_std::types::injective::exchange::v1beta1::{
     MsgBatchCreateSpotLimitOrders, MsgBatchUpdateOrders, MsgCreateSpotLimitOrder,
-    QuerySpotMarketRequest, QuerySpotMarketResponse, QuerySpotMarketsRequest,
-    QuerySpotMarketsResponse,
+    QueryMarketAtomicExecutionFeeMultiplierRequest,
+    QueryMarketAtomicExecutionFeeMultiplierResponse, QuerySpotMarketRequest,
+    QuerySpotMarketResponse, QuerySpotMarketsRequest, QuerySpotMarketsResponse,
+    QuerySpotOrderbookRequest, QuerySpotOrderbookResponse,
 };
 
 use crate::{
@@ -18,6 +20,46 @@ impl<T> ExchangeQuery for T where T: ClientAbciQuery {}
 
 #[async_trait]
 pub trait ExchangeQuery: ClientAbciQuery + Sized {
+    // QueryMarketAtomicExecutionFeeMultiplierRequest
+    /// QuerySpotOrderbookRequest
+    async fn exchange_query_atomic_execution_fee_multiplier(
+        &self,
+        req: QueryMarketAtomicExecutionFeeMultiplierRequest,
+        height: Option<u32>,
+    ) -> Result<
+        QueryResponse<
+            <Self as ClientAbciQuery>::Response,
+            QueryMarketAtomicExecutionFeeMultiplierResponse,
+        >,
+        ExchangeError,
+    > {
+        Ok(self
+            .query::<_, QueryMarketAtomicExecutionFeeMultiplierResponse>(
+                req,
+                "/injective.exchange.v1beta1.Query/MarketAtomicExecutionFeeMultiplier",
+                height,
+            )
+            .await?)
+    }
+
+    /// QuerySpotOrderbookRequest
+    async fn exchange_query_spot_order_book(
+        &self,
+        req: QuerySpotOrderbookRequest,
+        height: Option<u32>,
+    ) -> Result<
+        QueryResponse<<Self as ClientAbciQuery>::Response, QuerySpotOrderbookResponse>,
+        ExchangeError,
+    > {
+        Ok(self
+            .query::<_, QuerySpotOrderbookResponse>(
+                req,
+                "/injective.exchange.v1beta1.Query/SpotOrderbook",
+                height,
+            )
+            .await?)
+    }
+
     /// Query the amount of `denom` currently held by an `address`
     async fn exchange_query_spot_markets(
         &self,
