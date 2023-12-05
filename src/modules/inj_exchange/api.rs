@@ -21,7 +21,7 @@ impl<T> ExchangeQuery for T where T: ClientAbciQuery {}
 
 #[async_trait]
 pub trait ExchangeQuery: ClientAbciQuery + Sized {
-    async fn exchange_query_decimals(
+    async fn exchange_query_denom_decimals(
         &self,
         req: QueryDenomDecimalsRequest,
         height: Option<u32>,
