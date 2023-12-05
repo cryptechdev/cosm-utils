@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use injective_std::types::injective::exchange::v1beta1::{
     MsgBatchCreateSpotLimitOrders, MsgBatchUpdateOrders, MsgCreateSpotLimitOrder,
+    QueryDenomDecimalsRequest, QueryDenomDecimalsResponse,
     QueryMarketAtomicExecutionFeeMultiplierRequest,
     QueryMarketAtomicExecutionFeeMultiplierResponse, QuerySpotMarketRequest,
     QuerySpotMarketResponse, QuerySpotMarketsRequest, QuerySpotMarketsResponse,
@@ -20,6 +21,23 @@ impl<T> ExchangeQuery for T where T: ClientAbciQuery {}
 
 #[async_trait]
 pub trait ExchangeQuery: ClientAbciQuery + Sized {
+    async fn exchange_query_decimals(
+        &self,
+        req: QueryDenomDecimalsRequest,
+        height: Option<u32>,
+    ) -> Result<
+        QueryResponse<<Self as ClientAbciQuery>::Response, QueryDenomDecimalsResponse>,
+        ExchangeError,
+    > {
+        Ok(self
+            .query::<_, QueryDenomDecimalsResponse>(
+                req,
+                "/injective.exchange.v1beta1.Query/DenomDecimals",
+                height,
+            )
+            .await?)
+    }
+
     // QueryMarketAtomicExecutionFeeMultiplierRequest
     /// QuerySpotOrderbookRequest
     async fn exchange_query_atomic_execution_fee_multiplier(
