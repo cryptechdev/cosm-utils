@@ -18,16 +18,6 @@ use cosmrs::{
 use lazy_static::lazy_static;
 use log::info;
 use std::time::Duration;
-// use tendermint_rpc::{
-//     client::CompatMode,
-//     endpoint::{
-//         abci_query::AbciQuery,
-//         broadcast::{tx_async, tx_commit, tx_sync},
-//         tx,
-//     },
-//     query::{EventType, Query},
-//     HttpClient, Order,
-// };
 use tokio::sync::RwLock;
 
 use crate::chain::error::ChainError;
@@ -52,11 +42,7 @@ impl GetEvents for DeliverTx {
 
 impl GetErr for tx_commit::Response {
     fn get_err(self) -> Result<Self, ChainError> {
-        if self.tx_result.code.is_err() {
-            return Err(ChainError::TxCommit {
-                res: format!("{:?}", self),
-            });
-        } else if self.check_tx.code.is_err() {
+        if self.tx_result.code.is_err() || self.check_tx.code.is_err() {
             return Err(ChainError::TxCommit {
                 res: format!("{:?}", self),
             });

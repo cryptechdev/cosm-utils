@@ -16,7 +16,7 @@ categories = ["cryptography::cryptocurrencies"]
 license = "Apache-2.0"
 
 [dependencies]
-cosmrs = { version = "0.17", features = [
+cosmrs = { git = "https://github.com/cosmos/cosmos-rust", features = [
     "rpc",
     "cosmwasm",
     "grpc",
@@ -26,6 +26,7 @@ tendermint-rpc = { version = "0.38.0", features = [
     "websocket-client",
     "http-client",
 ] }
+bip32 = { version = "0.5", features = ["mnemonic"] }
 tokio = { version = "1.20.1", features = ["full"] }
 
 log = "0.4"

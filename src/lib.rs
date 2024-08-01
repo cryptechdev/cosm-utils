@@ -9,7 +9,7 @@ pub mod signing_key;
 
 pub mod chain;
 
-pub use tendermint_rpc;
+pub use cosmrs::rpc;
 
 pub mod prelude {
     pub use crate::clients::client::{

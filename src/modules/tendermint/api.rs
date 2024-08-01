@@ -3,7 +3,6 @@ use cosmrs::proto::cosmos::base::tendermint::v1beta1::{
     GetLatestBlockRequest, GetLatestBlockResponse, GetLatestValidatorSetRequest,
     GetLatestValidatorSetResponse, GetValidatorSetByHeightRequest, GetValidatorSetByHeightResponse,
 };
-use tendermint_rpc::Client;
 
 use crate::{chain::request::PaginationRequest, prelude::ClientUtils};
 

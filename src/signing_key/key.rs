@@ -1,3 +1,4 @@
+use bip32::Mnemonic;
 use cosmrs::bip32;
 use cosmrs::bip32::secp256k1::elliptic_curve::rand_core::OsRng;
 use cosmrs::crypto::{secp256k1, PublicKey};

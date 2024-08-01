@@ -12,18 +12,19 @@ use async_trait::async_trait;
 use cosmrs::proto::cosmos::auth::v1beta1::{
     BaseAccount, QueryAccountRequest, QueryAccountResponse,
 };
+
 use cosmrs::proto::cosmos::tx::v1beta1::{SimulateRequest, SimulateResponse, TxRaw};
 use cosmrs::proto::traits::Message;
 use cosmrs::tendermint::Hash;
 use cosmrs::Any;
+use cosmrs::{rpc::endpoint::tx, tendermint::abci::Event};
 
-use cosmrs::tendermint::abci::{Event, EventAttribute};
+use cosmrs::tendermint::abci::EventAttribute;
 use cosmrs::tx::{Body, SignerInfo};
 #[cfg(feature = "mockall")]
 use mockall::automock;
 
 use serde::Serialize;
-use tendermint_rpc::endpoint::tx;
 
 fn encode_msg<T: Message>(msg: T) -> Result<Vec<u8>, ChainError> {
     let mut data = Vec::with_capacity(msg.encoded_len());
