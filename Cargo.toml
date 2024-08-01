@@ -2,7 +2,10 @@
 name = "cosm-utils"
 version = "0.1.2"
 edition = "2021"
-authors = ["Eric Woolsey <ewoolsey@ualberta.ca>", "Harry Hull <harry.hull1@gmail.com>"]
+authors = [
+    "Eric Woolsey <ewoolsey@ualberta.ca>",
+    "Harry Hull <harry.hull1@gmail.com>",
+]
 
 readme = "README.md"
 description = "Simple utility traits and functions for tendermint_rpc and cosmrs"
@@ -13,9 +16,17 @@ categories = ["cryptography::cryptocurrencies"]
 license = "Apache-2.0"
 
 [dependencies]
-cosmrs = { version = "0.14.0", features = ["rpc", "cosmwasm", "grpc"] }
-tendermint-rpc = "0.32.0"
-tokio = { version = "1.20.1", features = ["full"]}
+cosmrs = { version = "0.17", features = [
+    "rpc",
+    "cosmwasm",
+    "grpc",
+    "tendermint-rpc",
+] }
+tendermint-rpc = { version = "0.38.0", features = [
+    "websocket-client",
+    "http-client",
+] }
+tokio = { version = "1.20.1", features = ["full"] }
 
 log = "0.4"
 async-trait = "0.1.57"
@@ -27,6 +38,3 @@ lazy_static = "1"
 
 keyring = { version = "2", optional = true }
 mockall = { version = "0.11.2", optional = true }
-
-[dev-dependencies]
-tendermint-rpc = { version = "0.32.0", features = ["websocket-client", "http-client"]}

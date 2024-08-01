@@ -1,5 +1,6 @@
 use core::fmt::Debug;
-use cosmrs::{proto::traits::TypeUrl, tx::MessageExt, Any};
+use cosmrs::proto::prost::Name;
+use cosmrs::{tx::MessageExt, Any};
 use std::fmt::Display;
 
 use super::error::ChainError;
@@ -8,14 +9,14 @@ pub trait Msg:
     Clone + Sized + TryFrom<Self::Proto, Error = Self::Err> + TryInto<Self::Proto, Error = Self::Err>
 {
     /// Protobuf type
-    type Proto: Default + MessageExt + Sized + TypeUrl;
+    type Proto: Default + MessageExt + Sized + Name;
 
     /// Protobuf conversion error type
     type Err: From<ChainError> + Debug + Display;
 
     /// Parse this message proto from [`Any`].
     fn from_any(any: &Any) -> Result<Self, Self::Err> {
-        Self::Proto::from_any(any)
+        any.to_msg::<Self::Proto>()
             .map_err(ChainError::prost_proto_decoding)?
             .try_into()
     }
@@ -27,9 +28,7 @@ pub trait Msg:
 
     /// Convert this message proto into [`Any`].
     fn into_any(self) -> Result<Any, Self::Err> {
-        Ok(self
-            .try_into()?
-            .to_any()
-            .map_err(ChainError::prost_proto_encoding)?)
+        let msg: Self::Proto = self.try_into()?;
+        Ok(Any::from_msg(&msg).map_err(ChainError::prost_proto_encoding)?)
     }
 }

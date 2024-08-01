@@ -1,8 +1,9 @@
 use cosmrs::proto::cosmos::base::abci::v1beta1::Result;
 use cosmrs::proto::prost::{DecodeError, EncodeError};
+use cosmrs::rpc::endpoint::abci_query::AbciQuery;
 use cosmrs::tendermint::Hash;
 use cosmrs::ErrorReport;
-use tendermint_rpc::endpoint::abci_query::AbciQuery;
+// use tendermint_rpc::endpoint::abci_query::AbciQuery;
 use thiserror::Error;
 
 #[cfg(feature = "keyring")]

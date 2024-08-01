@@ -68,7 +68,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
         let code_ids = res
             .find_event_tags("store_code".to_string(), "code_id".to_string())
             .into_iter()
-            .map(|x| x.value.parse::<u64>())
+            .map(|x| x.value_str().unwrap().parse::<u64>())
             .collect::<Result<Vec<_>, _>>()
             .map_err(|_| CosmwasmError::MissingEvent)?;
 
@@ -128,7 +128,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
 
         let addrs = events
             .into_iter()
-            .map(|e| e.value.parse())
+            .map(|e| e.value_str().unwrap().parse())
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(InstantiateBatchResponse {

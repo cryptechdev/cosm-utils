@@ -48,8 +48,10 @@ pub trait GetEvents {
         for event in self.get_events() {
             if event.kind == event_type {
                 for attr in &event.attributes {
-                    if attr.key == key_name {
-                        events.push(attr);
+                    if let Ok(attr_str) = attr.key_str() {
+                        if attr_str == key_name {
+                            events.push(attr);
+                        }
                     }
                 }
             }
