@@ -1,3 +1,4 @@
+use bip32::Mnemonic;
 use cosmrs::bip32;
 use cosmrs::bip32::secp256k1::elliptic_curve::rand_core::OsRng;
 use cosmrs::crypto::{secp256k1, PublicKey};
@@ -132,7 +133,7 @@ impl UserKey {
     }
 
     pub fn random_mnemonic(key_name: String) -> UserKey {
-        let mnemonic = bip32::Mnemonic::random(OsRng, Default::default());
+        let mnemonic = Mnemonic::random(OsRng, Default::default());
 
         UserKey {
             name: key_name,

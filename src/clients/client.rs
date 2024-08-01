@@ -14,15 +14,15 @@ use cosmrs::proto::cosmos::tx::v1beta1::{SimulateRequest, SimulateResponse, TxRa
 use cosmrs::proto::traits::Message;
 use cosmrs::tendermint::Hash;
 use cosmrs::Any;
-use schemars::JsonSchema;
+use cosmrs::{rpc::endpoint::tx, tendermint::abci::Event};
 
-use cosmrs::tendermint::abci::{Event, EventAttribute};
+use cosmrs::tendermint::abci::EventAttribute;
 use cosmrs::tx::{Body, SignerInfo};
 #[cfg(feature = "mockall")]
 use mockall::automock;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use tendermint_rpc::endpoint::tx;
 
 fn encode_msg<T: Message>(msg: T) -> Result<Vec<u8>, ChainError> {
     let mut data = Vec::with_capacity(msg.encoded_len());
@@ -47,8 +47,10 @@ pub trait GetEvents {
         for event in self.get_events() {
             if event.kind == event_type {
                 for attr in &event.attributes {
-                    if attr.key == key_name {
-                        events.push(attr);
+                    if let Ok(attr_str) = attr.key_str() {
+                        if attr_str == key_name {
+                            events.push(attr);
+                        }
                     }
                 }
             }

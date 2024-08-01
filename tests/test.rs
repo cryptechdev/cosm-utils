@@ -12,9 +12,10 @@ use cosm_utils::{
         bank::{api::BankQuery, model::SendRequest},
     },
     prelude::*,
+    rpc::Client as _,
+    rpc::WebSocketClient,
     signing_key::key::{Key, UserKey},
 };
-use tendermint_rpc::{Client, WebSocketClient};
 
 #[ignore]
 #[tokio::test]
