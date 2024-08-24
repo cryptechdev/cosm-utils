@@ -17,7 +17,7 @@ default = ["injective"]
 injective = ["dep:injective-std", "dep:ethers-signers"]
 
 [dependencies]
-cosmrs = { git = "https://github.com/cosmos/cosmos-rust", features = [
+cosmrs = { git = "https://github.com/cosmos/cosmos-rust", rev = "871e5140db1", features = [
     "rpc",
     "cosmwasm",
     "grpc",
