@@ -7,13 +7,13 @@ use cosm_utils::{
     },
     clients::client::HashSearch,
     config::cfg::ChainConfig,
+    cosmrs::rpc::Client as _,
+    cosmrs::rpc::WebSocketClient,
     modules::{
         auth::model::Address,
         bank::{api::BankQuery, model::SendRequest},
     },
     prelude::*,
-    rpc::Client as _,
-    rpc::WebSocketClient,
     signing_key::key::{Key, UserKey},
 };
 

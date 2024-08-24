@@ -20,7 +20,7 @@ pub mod signing_key;
 
 pub mod chain;
 
-pub use cosmrs::rpc;
+pub use cosmrs;
 
 pub mod prelude {
     pub use crate::clients::client::{

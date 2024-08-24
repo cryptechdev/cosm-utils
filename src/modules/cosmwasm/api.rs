@@ -81,7 +81,13 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
                 "code_id".to_string(),
             )
             .into_iter()
-            .map(|x| x.value.replace('\"', "").parse::<u64>())
+            .map(|x| {
+                x.value_str()
+                    .unwrap()
+                    .to_string()
+                    .replace('\"', "")
+                    .parse::<u64>()
+            })
             .collect::<Result<Vec<_>, _>>()
             .map_err(|_| CosmwasmError::MissingEvent)?;
 
@@ -149,7 +155,7 @@ pub trait CosmwasmTxCommit: ClientTxCommit + ClientAbciQuery {
                 "contract_address".to_string(),
             )
             .into_iter()
-            .map(|x| x.value.replace('\"', "").parse())
+            .map(|x| x.value_str().unwrap().to_string().replace('\"', "").parse())
             .collect::<Result<Vec<_>, _>>()
             .map_err(|_| CosmwasmError::MissingEvent)?;
 
