@@ -17,12 +17,19 @@ default = ["injective"]
 injective = ["dep:injective-std", "dep:ethers-signers"]
 
 [dependencies]
-cosmrs = { git = "https://github.com/cosmos/cosmos-rust", rev = "871e5140db1", features = [
+#cosmrs = { git = "https://github.com/cosmos/cosmos-rust", rev = "871e5140db1", features = [
+#    "rpc",
+#    "cosmwasm",
+#    "grpc",
+#    "tendermint-rpc",
+#] }
+cosmrs = { version = "0.18", features = [
     "rpc",
     "cosmwasm",
     "grpc",
     "tendermint-rpc",
 ] }
+
 tendermint-rpc = { version = "0.38.0", features = [
     "websocket-client",
     "http-client",
@@ -42,7 +49,7 @@ keyring = { version = "2", optional = true }
 mockall = { version = "0.11.2", optional = true }
 
 # Optional dependencies for injective
-injective-std = { git = "https://github.com/cryptechdev/cw-injective.git", branch = "eric/dev", optional = true }
+injective-std = { git = "https://github.com/cryptechdev/cw-injective.git", rev = "2968cc0cc6696048059d043b1b354f53125067ec", optional = true }
 ecdsa = "0.16"
 ethers-signers = { version = "=2.0.11", optional = true }
 ethers = "=2.0.11"
